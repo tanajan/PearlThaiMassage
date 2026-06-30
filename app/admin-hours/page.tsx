@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { AdminHoursBoard } from "./AdminHoursBoard";
 import {
@@ -18,11 +19,15 @@ type AdminHoursProps = {
   }>;
 };
 
+export const dynamic = "force-dynamic";
+
 function dateHref(date: Date) {
   return `/admin-hours?date=${toDateInputValue(date)}`;
 }
 
 export default async function AdminHours({ searchParams }: AdminHoursProps) {
+  await connection();
+
   const params = await searchParams;
   const selectedDate = parseDateParam(params?.date);
   const dayStart = startOfDay(selectedDate);

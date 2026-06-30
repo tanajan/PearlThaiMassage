@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
   addDays,
@@ -26,6 +27,8 @@ type StaffCalendarProps = {
 
 const views = ["day", "week", "month"] as const;
 const SLOT_HEIGHT = 64;
+
+export const dynamic = "force-dynamic";
 
 function hrefFor({
   date,
@@ -61,6 +64,8 @@ function bookingEndMinutes(booking: { endTime: Date }) {
 }
 
 export default async function StaffCalendar({ searchParams }: StaffCalendarProps) {
+  await connection();
+
   const params = await searchParams;
   const selectedDate = parseDateParam(params?.date);
   const view = views.includes(params?.view as (typeof views)[number])

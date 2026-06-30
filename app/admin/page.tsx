@@ -10,6 +10,7 @@ import {
   updateServiceGroup,
   updateStaffSchedule,
 } from "@/app/actions";
+import { connection } from "next/server";
 import { ConfirmSubmitButton } from "@/app/components/ConfirmSubmitButton";
 import { FlashModal } from "@/app/components/FlashModal";
 import { prisma } from "@/lib/prisma";
@@ -30,6 +31,8 @@ type HomeProps = {
     success?: string;
   }>;
 };
+
+export const dynamic = "force-dynamic";
 
 const sections = [
   { id: "booking", label: "Booking" },
@@ -143,6 +146,8 @@ function DashboardHeader() {
 }
 
 export default async function Home({ searchParams }: HomeProps) {
+  await connection();
+
   const params = await searchParams;
   const activeSection = isSection(params?.section) ? params.section : "booking";
   const today = new Date();
