@@ -2,6 +2,9 @@
   "name": "thai-massage-booking",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "next dev --webpack",
     "build": "prisma generate && next build",

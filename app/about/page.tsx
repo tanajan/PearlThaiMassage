@@ -3,16 +3,16 @@ import { PublicLayout } from "@/app/components/PublicLayout";
 export default function AboutPage() {
   return (
     <PublicLayout>
-      <section className="mx-auto grid max-w-6xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:px-8">
+      <section className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8 lg:px-8">
         <div className="flex justify-center">
           <img
             src="/images/logo.jpeg"
             alt="Pearl Thai Massage logo"
-            className="h-56 w-56 rounded-lg object-cover shadow-lg"
+            className="h-40 w-40 rounded-lg object-cover shadow-lg sm:h-56 sm:w-56"
           />
         </div>
-        <article className="rounded-md bg-white p-6 shadow-sm">
-          <h1 className="text-3xl font-semibold text-[#d19a66]">About Us</h1>
+        <article className="rounded-md bg-white p-5 shadow-sm sm:p-6">
+          <h1 className="text-2xl font-semibold text-[#587b4b] sm:text-3xl">About Us</h1>
           <p className="mt-5 leading-8 text-stone-700">
             Pearl Thai Massage is dedicated to bringing the authentic experience of
             traditional Thai massage to Birmingham. Our therapists combine

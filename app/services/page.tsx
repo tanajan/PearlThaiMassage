@@ -65,16 +65,16 @@ const reviews = [
 export default function ServicesPage() {
   return (
     <PublicLayout>
-      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         <div className="text-center">
-          <h1 className="text-4xl font-semibold">Services</h1>
+          <h1 className="text-3xl font-semibold sm:text-4xl">Services</h1>
           <p className="mx-auto mt-3 max-w-2xl text-stone-600">
             A starting display page for the treatment list. Later we can connect
             this to the service groups in your admin system.
           </p>
         </div>
 
-        <div className="mt-10 grid gap-10">
+        <div className="mt-8 grid gap-6 sm:mt-10 lg:gap-10">
           {services.map((service, index) => (
             <article
               key={service.title}
@@ -85,10 +85,10 @@ export default function ServicesPage() {
               <img
                 src={service.image}
                 alt={service.title}
-                className="h-72 w-full object-cover lg:h-full"
+                className="h-56 w-full object-cover sm:h-72 lg:h-full"
               />
-              <div className="flex flex-col justify-center p-8 text-center">
-                <h2 className="text-2xl font-semibold">{service.title}</h2>
+              <div className="flex flex-col justify-center p-5 text-center sm:p-8">
+                <h2 className="text-xl font-semibold sm:text-2xl">{service.title}</h2>
                 <p className="mt-4 leading-7 text-stone-600">{service.description}</p>
               </div>
             </article>

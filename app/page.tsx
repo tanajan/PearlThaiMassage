@@ -25,7 +25,7 @@ const treatments = [
 export default function PublicHome() {
   return (
     <PublicLayout>
-      <section className="relative flex min-h-[calc(100vh-88px)] items-center justify-center overflow-hidden text-center text-white">
+      <section className="relative flex min-h-[calc(100vh-80px)] items-center justify-center overflow-hidden text-center text-white sm:min-h-[calc(100vh-88px)]">
         <video
           className="absolute inset-0 h-full w-full object-cover"
           autoPlay
@@ -37,23 +37,23 @@ export default function PublicHome() {
           <source src="/images/LandingVId.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-black/45" />
-        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center px-4">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
+        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center px-4 py-16">
+          <h1 className="text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
             Pearl Thai Massage
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-white/90">
+          <p className="mt-5 max-w-2xl text-base leading-7 text-white/90 sm:text-lg sm:leading-8">
             Authentic Thai massage, relaxing treatments, and caring therapists
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <div className="mt-8 grid w-full max-w-xs gap-3 sm:flex sm:max-w-none sm:flex-wrap sm:justify-center">
             <Link
               href="/admin?section=booking"
-              className="rounded-full bg-[#7fa66a] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#dcebc8] hover:text-[#263f32]"
+              className="rounded-full bg-[#7fa66a] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#dcebc8] hover:text-[#263f32]"
             >
               Book Now
             </Link>
             <Link
               href="/services"
-              className="rounded-full bg-[#315c46] px-6 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-[#263f32]"
+              className="rounded-full bg-[#315c46] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-white hover:text-[#263f32]"
             >
               View Services
             </Link>
@@ -61,16 +61,16 @@ export default function PublicHome() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:px-8">
+      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8 lg:px-8">
         <div className="flex justify-center">
           <img
             src="/images/logo.jpeg"
             alt="Pearl Thai Massage logo"
-            className="h-52 w-52 rounded-lg object-cover shadow-lg"
+            className="h-40 w-40 rounded-lg object-cover shadow-lg sm:h-52 sm:w-52"
           />
         </div>
-        <div className="rounded-md bg-white p-6 shadow-sm">
-          <h2 className="text-3xl font-semibold text-[#587b4b]">About Us</h2>
+        <div className="rounded-md bg-white p-5 shadow-sm sm:p-6">
+          <h2 className="text-2xl font-semibold text-[#587b4b] sm:text-3xl">About Us</h2>
           <p className="mt-4 leading-8 text-stone-700">
             Pearl Thai Massage is dedicated to bringing the authentic experience of
             traditional Thai massage to Birmingham. Our skilled therapists combine
@@ -84,15 +84,15 @@ export default function PublicHome() {
         </div>
       </section>
 
-      <section className="bg-white px-4 py-14 sm:px-6 lg:px-8">
+      <section className="bg-white px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <h2 className="text-center text-3xl font-semibold">Popular Treatments</h2>
+          <h2 className="text-center text-2xl font-semibold sm:text-3xl">Popular Treatments</h2>
           <div className="mt-8 grid gap-6 md:grid-cols-3">
             {treatments.map((treatment, index) => (
               <article
                 key={treatment.title}
                 className="rounded-2xl bg-[#f3f7ef] p-5 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                style={{ marginTop: `${index * 16}px` }}
+                style={{ marginTop: index === 0 ? 0 : undefined }}
               >
                 <img
                   src={treatment.image}
@@ -109,8 +109,8 @@ export default function PublicHome() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:px-8">
-        <div className="min-h-80 overflow-hidden rounded-md bg-stone-200 shadow-sm">
+      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-2 lg:gap-8 lg:px-8">
+        <div className="min-h-72 overflow-hidden rounded-md bg-stone-200 shadow-sm sm:min-h-80">
           <iframe
             title="Pearl Thai Massage map"
             src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2444.719313740936!2d0.15545367934570314!3d52.2121481!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47d870681f6ce20f%3A0x5c1c2c29728a63dc!2s2%20Whitehill%20Rd%2C%20Cambridge%20CB5%208LT!5e0!3m2!1sen!2suk!4v1782859588467!5m2!1sen!2suk"
@@ -118,8 +118,8 @@ export default function PublicHome() {
             loading="lazy"
           />
         </div>
-        <div className="rounded-md bg-white p-6 shadow-sm">
-          <h2 className="text-3xl font-semibold">Find Us Here</h2>
+        <div className="rounded-md bg-white p-5 shadow-sm sm:p-6">
+          <h2 className="text-2xl font-semibold sm:text-3xl">Find Us Here</h2>
           <div className="mt-5 space-y-5 text-stone-700">
             <div>
               <h3 className="font-semibold text-stone-950">Opening Hours</h3>
@@ -137,7 +137,7 @@ export default function PublicHome() {
               <p className="mt-1">+44 7472 908714</p>
             </div>
           </div>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
             <a
               href="https://maps.app.goo.gl/244QRPtaMziaEYta6"
               target="_blank"
