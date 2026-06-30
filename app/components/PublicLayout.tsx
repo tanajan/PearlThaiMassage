@@ -1,0 +1,93 @@
+import Link from "next/link";
+import type { ReactNode } from "react";
+
+const navItems = [
+  { href: "/about", label: "About" },
+  { href: "/services", label: "Services" },
+  { href: "/contact", label: "Contact" },
+  { href: "/gallery", label: "Gallery" },
+  { href: "/reviews", label: "Reviews" },
+];
+
+export function PublicLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="min-h-screen bg-[#f3f7ef] text-stone-900">
+      <header className="sticky top-0 z-40 bg-[#315c46] text-white shadow-md">
+        <nav className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+          <Link href="/" className="flex items-center gap-3">
+            <img
+              src="/images/logo.jpeg"
+              alt="Pearl Thai Massage"
+              className="h-16 w-16 rounded-md object-cover"
+            />
+            <span className="text-lg font-semibold text-[#dcebc8]">
+              Pearl Thai Massage
+            </span>
+          </Link>
+
+          <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-md px-3 py-2 text-[#dcebc8] transition hover:bg-white hover:text-[#263f32]"
+              >
+                {item.label}
+              </Link>
+            ))}
+            <Link
+              href="/admin"
+              className="rounded-full bg-white/10 px-4 py-2 text-white ring-1 ring-white/30 transition hover:bg-white hover:text-[#263f32]"
+            >
+              Admin
+            </Link>
+            <Link
+              href="/admin?section=booking"
+              className="rounded-full bg-[#7fa66a] px-4 py-2 text-white transition hover:bg-[#dcebc8] hover:text-[#263f32]"
+            >
+              Book Now
+            </Link>
+          </div>
+        </nav>
+      </header>
+
+      <main>{children}</main>
+
+      <footer className="bg-[#263f32] px-4 py-8 text-center text-white sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-3">
+          <div>
+            <h4 className="font-semibold">Contact</h4>
+            <p className="mt-2 text-sm text-stone-200">
+              38A Meriden Street, Birmingham B5 5LS
+            </p>
+            <p className="mt-1 text-sm text-stone-200">+44 7596 959873</p>
+          </div>
+          <div>
+            <h4 className="font-semibold">Quick Links</h4>
+            <div className="mt-2 flex flex-wrap justify-center gap-3 text-sm text-stone-200">
+              <Link href="/about">About</Link>
+              <Link href="/services">Services</Link>
+              <Link href="/contact">Contact</Link>
+              <Link href="/privacy">Privacy</Link>
+              <Link href="/terms">Terms</Link>
+            </div>
+          </div>
+          <div>
+            <h4 className="font-semibold">Social</h4>
+            <div className="mt-2 flex justify-center gap-4 text-sm text-stone-200">
+              <a href="https://www.facebook.com/" target="_blank" rel="noreferrer">
+                Facebook
+              </a>
+              <a href="https://www.instagram.com/" target="_blank" rel="noreferrer">
+                Instagram
+              </a>
+            </div>
+          </div>
+        </div>
+        <p className="mt-8 border-t border-white/15 pt-5 text-xs text-stone-300">
+          Copyright 2026 Pearl Thai Massage. All rights reserved.
+        </p>
+      </footer>
+    </div>
+  );
+}

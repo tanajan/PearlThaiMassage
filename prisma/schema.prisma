@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Staff {
+  id        Int       @id @default(autoincrement())
+  name      String
+  phone     String?
+  bookings  Booking[]
+  createdAt DateTime  @default(now())
+  workingHours WorkingHours[]
+  staffServiceGroups StaffServiceGroup[]
+}
+
+model ServiceGroup {
+  id        Int      @id @default(autoincrement())
+  name      String
+  colour    String   @default("#70E6D2")
+  services  Service[]
+  staffServiceGroups StaffServiceGroup[]
+  createdAt DateTime @default(now())
+}
+
+model Service {
+  id          Int      @id @default(autoincrement())
+  name        String
+  duration    Int
+  price       Float
+  bookings    Booking[]
+  groupId     Int
+  group       ServiceGroup @relation(fields: [groupId], references: [id])
+}
+
+model Booking {
+  id          Int      @id @default(autoincrement())
+  customer    String
+  phone       String?
+  startTime   DateTime
+  endTime     DateTime
+
+  staffId     Int
+  staff       Staff    @relation(fields: [staffId], references: [id])
+
+  serviceId   Int
+  service     Service  @relation(fields: [serviceId], references: [id])
+
+  status      String   @default("confirmed")
+  note        String?
+
+  createdAt   DateTime @default(now())
+}
+
+model WorkingHours {
+  id        Int    @id @default(autoincrement())
+  staffId   Int
+  dayOfWeek Int
+  startTime String
+  endTime   String
+
+  staff     Staff  @relation(fields: [staffId], references: [id])
+}
+
+model StaffServiceGroup {
+  id        Int      @id @default(autoincrement())
+  staffId   Int
+  groupId   Int
+  createdAt DateTime @default(now())
+
+  staff     Staff        @relation(fields: [staffId], references: [id])
+  group     ServiceGroup @relation(fields: [groupId], references: [id])
+
+  @@unique([staffId, groupId])
+}
