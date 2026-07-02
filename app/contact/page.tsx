@@ -15,8 +15,8 @@ export default function ContactPage() {
           <div className="mt-6 space-y-6 text-stone-700">
             <div>
               <h2 className="text-xl font-semibold text-stone-950">Opening Hours</h2>
-              <p className="mt-2">Monday - Saturday: 10:00 - 21:00</p>
-              <p>Sunday: 11:00 - 19:00</p>
+              <p className="mt-2">Monday - Saturday: 09:00 - 19:00</p>
+              <p>Sunday: 09:00 - 18:00</p>
             </div>
             <div>
               <h2 className="text-xl font-semibold text-stone-950">Address</h2>

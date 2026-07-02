@@ -1,64 +1,54 @@
 import { PublicLayout } from "@/app/components/PublicLayout";
 
+const standardPrices = [
+  { duration: "60 min", price: "£60" },
+  { duration: "90 min", price: "£85" },
+  { duration: "120 min", price: "£110" },
+];
+
+const sportPrices = [
+  { duration: "60 min", price: "£65" },
+  { duration: "90 min", price: "£95" },
+  { duration: "120 min", price: "£125" },
+];
+
 const services = [
   {
-    title: "Traditional Thai Deep Tissue",
+    title: "Thai Massage",
     description:
-      "A stronger massage designed to work deeper into tight muscles and release built-up tension.",
-    image: "/images/service1.jpg",
+      "Traditional Thai massage using firm pressure, assisted stretching, and rhythmic movements to ease tension and improve flexibility.",
+    prices: standardPrices,
   },
   {
-    title: "Hot Oil Relaxing",
+    title: "Thai Massage Mix Oil Massage",
     description:
-      "Warm oil and smooth flowing movements for a calming, relaxing treatment.",
-    image: "/images/service2.jpg",
+      "A balanced treatment combining Thai massage techniques with oil massage for deep relief while keeping the session smooth and relaxing.",
+    prices: standardPrices,
+  },
+  {
+    title: "Aroma Massage",
+    subtitle: "Soft and relaxing massage",
+    description:
+      "A gentle, calming massage using flowing movements to help relax the body, reduce stress, and create a peaceful feeling.",
+    prices: standardPrices,
+  },
+  {
+    title: "Sport Massage",
+    description:
+      "A focused massage for active bodies, tight muscles, and recovery support, using stronger pressure where needed.",
+    prices: sportPrices,
+  },
+  {
+    title: "Back and Shoulder Massage",
+    description:
+      "Targeted massage for the back, neck, and shoulders to help release common tension from work, posture, and daily stress.",
+    prices: standardPrices,
   },
   {
     title: "Foot Massage",
     description:
-      "Focused care for tired feet and lower legs, ideal after standing, walking, or travelling.",
-    image: "/images/service3.jpg",
-  },
-  {
-    title: "Back, Neck & Shoulder",
-    description:
-      "Targeted massage for common tension areas around the shoulders, neck, and upper back.",
-    image: "/images/service4.jpg",
-  },
-  {
-    title: "Hot Stone",
-    description:
-      "Heated stones help soften muscle tension and bring a deeper sense of relaxation.",
-    image: "/images/service5.jpg",
-  },
-  {
-    title: "Holistic Massage",
-    description:
-      "A gentler treatment focused on comfort, relaxation, and overall wellbeing.",
-    image: "/images/service6.jpg",
-  },
-  {
-    title: "Couple Massage",
-    description:
-      "A shared treatment experience for two people in a calm and welcoming room.",
-    image: "/images/service7.jpg",
-  },
-  {
-    title: "Four Hands Massage",
-    description:
-      "Two therapists work together with coordinated movements for an immersive treatment.",
-    image: "/images/service8.jpg",
-  },
-];
-
-const reviews = [
-  {
-    text: "The staff were incredibly friendly and the shoulder, neck, and back massage was exactly what I needed.",
-    author: "Trishna T.",
-  },
-  {
-    text: "Beautiful ambience and relaxing massage. I slept like a baby when I got home.",
-    author: "Modupe F.",
+      "A relaxing treatment for tired feet and lower legs, helping improve comfort after standing, walking, or long days.",
+    prices: standardPrices,
   },
 ];
 
@@ -69,43 +59,60 @@ export default function ServicesPage() {
         <div className="text-center">
           <h1 className="text-3xl font-semibold sm:text-4xl">Services</h1>
           <p className="mx-auto mt-3 max-w-2xl text-stone-600">
-            A starting display page for the treatment list. Later we can connect
-            this to the service groups in your admin system.
+            Choose from traditional Thai massage, relaxing oil treatments, sports
+            massage, and focused back, shoulder, or foot treatments.
           </p>
         </div>
 
-        <div className="mt-8 grid gap-6 sm:mt-10 lg:gap-10">
+        <div className="mt-8 grid gap-6 sm:mt-10 lg:gap-8">
           {services.map((service, index) => (
             <article
               key={service.title}
-              className={`grid overflow-hidden rounded-md bg-white shadow-sm lg:grid-cols-2 ${
-                index % 2 === 1 ? "lg:[&>img]:order-2" : ""
+              className={`grid overflow-hidden rounded-md bg-white shadow-sm lg:grid-cols-[minmax(260px,0.75fr)_minmax(0,1.25fr)] ${
+                index % 2 === 1 ? "lg:[&>div:first-child]:order-2" : ""
               }`}
             >
-              <img
-                src={service.image}
-                alt={service.title}
-                className="h-56 w-full object-cover sm:h-72 lg:h-full"
-              />
-              <div className="flex flex-col justify-center p-5 text-center sm:p-8">
-                <h2 className="text-xl font-semibold sm:text-2xl">{service.title}</h2>
-                <p className="mt-4 leading-7 text-stone-600">{service.description}</p>
+              <div className="flex min-h-56 items-center justify-center bg-[#e7efe0] p-6 text-center sm:min-h-72">
+                <div>
+                  <div className="mx-auto h-16 w-16 rounded-full border border-[#b7cf9f] bg-[#f3f7ef]" />
+                  <p className="mt-4 text-sm font-medium text-[#587b4b]">
+                    Service photo coming soon
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col justify-center p-5 sm:p-8">
+                <div className="text-center lg:text-left">
+                  <h2 className="text-xl font-semibold sm:text-2xl">
+                    {service.title}
+                  </h2>
+                  {service.subtitle && (
+                    <p className="mt-1 text-sm font-medium text-[#587b4b]">
+                      {service.subtitle}
+                    </p>
+                  )}
+                  <p className="mt-4 leading-7 text-stone-600">
+                    {service.description}
+                  </p>
+                </div>
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                  {service.prices.map((price) => (
+                    <div
+                      key={`${service.title}-${price.duration}`}
+                      className="rounded-md border border-[#dcebc8] bg-[#f3f7ef] p-4 text-center"
+                    >
+                      <div className="text-sm font-medium text-stone-600">
+                        {price.duration}
+                      </div>
+                      <div className="mt-1 text-2xl font-semibold text-[#315c46]">
+                        {price.price}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </article>
-          ))}
-        </div>
-
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
-          {reviews.map((review) => (
-            <blockquote
-              key={review.author}
-              className="rounded-md bg-[#f3f7ef] p-6 text-center shadow-sm"
-            >
-              <p className="italic text-stone-700">"{review.text}"</p>
-              <footer className="mt-3 font-semibold text-stone-950">
-                - {review.author}
-              </footer>
-            </blockquote>
           ))}
         </div>
       </section>

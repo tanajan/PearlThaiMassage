@@ -3,22 +3,22 @@ import { PublicLayout } from "@/app/components/PublicLayout";
 
 const treatments = [
   {
-    title: "Hot Stone",
-    image: "/images/service5.jpg",
-    description:
-      "Warm stones and flowing massage techniques to release deep tension and encourage calm.",
-  },
-  {
-    title: "Deep Tissue Massage",
+    title: "Thai Massage",
     image: "/images/service1.jpg",
     description:
-      "Focused pressure for tight muscles, tired shoulders, and areas that need extra care.",
+      "Traditional Thai techniques with firm pressure and assisted stretching.",
   },
   {
-    title: "Hot Oil Relaxing",
+    title: "Aroma Massage",
     image: "/images/service2.jpg",
     description:
-      "A soothing massage using warm oil to help you slow down, relax, and reset.",
+      "A soft and relaxing massage with smooth, calming movements.",
+  },
+  {
+    title: "Back and Shoulder Massage",
+    image: "/images/service4.jpg",
+    description:
+      "Focused relief for common back, neck, and shoulder tension.",
   },
 ];
 
@@ -123,8 +123,8 @@ export default function PublicHome() {
           <div className="mt-5 space-y-5 text-stone-700">
             <div>
               <h3 className="font-semibold text-stone-950">Opening Hours</h3>
-              <p className="mt-1">Monday - Saturday: 10:00 - 21:00</p>
-              <p>Sunday: 11:00 - 19:00</p>
+              <p className="mt-1">Monday - Saturday: 09:00 - 19:00</p>
+              <p>Sunday: 09:00 - 18:00</p>
             </div>
             <div>
               <h3 className="font-semibold text-stone-950">Address</h3>
