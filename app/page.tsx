@@ -1,5 +1,9 @@
 import Link from "next/link";
+import { OpeningHoursTable } from "@/app/components/OpeningHoursTable";
 import { PublicLayout } from "@/app/components/PublicLayout";
+import { getShopHours } from "@/lib/shopHours";
+
+export const dynamic = "force-dynamic";
 
 const treatments = [
   {
@@ -22,7 +26,9 @@ const treatments = [
   },
 ];
 
-export default function PublicHome() {
+export default async function PublicHome() {
+  const shopHours = await getShopHours();
+
   return (
     <PublicLayout>
       <section className="relative flex min-h-[calc(100vh-80px)] items-center justify-center overflow-hidden text-center text-white sm:min-h-[calc(100vh-88px)]">
@@ -123,8 +129,9 @@ export default function PublicHome() {
           <div className="mt-5 space-y-5 text-stone-700">
             <div>
               <h3 className="font-semibold text-stone-950">Opening Hours</h3>
-              <p className="mt-1">Monday - Saturday: 09:00 - 19:00</p>
-              <p>Sunday: 09:00 - 18:00</p>
+              <div className="mt-3">
+                <OpeningHoursTable hours={shopHours} />
+              </div>
             </div>
             <div>
               <h3 className="font-semibold text-stone-950">Address</h3>

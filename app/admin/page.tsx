@@ -8,6 +8,7 @@ import {
   deleteServiceGroup,
   updateService,
   updateServiceGroup,
+  updateShopHours,
   updateStaffSchedule,
 } from "@/app/actions";
 import { connection } from "next/server";
@@ -15,6 +16,7 @@ import { ConfirmSubmitButton } from "@/app/components/ConfirmSubmitButton";
 import { FlashModal } from "@/app/components/FlashModal";
 import { prisma } from "@/lib/prisma";
 import { getServiceColourTheme, SERVICE_COLOURS } from "@/lib/serviceColours";
+import { getDefaultShopHours } from "@/lib/shopHours";
 import {
   BOOKING_START_HOURS,
   DAYS,
@@ -38,6 +40,7 @@ const sections = [
   { id: "booking", label: "Booking" },
   { id: "staff", label: "Staff" },
   { id: "service", label: "Service" },
+  { id: "shop", label: "Shop" },
   { id: "customer", label: "Customer" },
 ] as const;
 
@@ -196,6 +199,9 @@ export default async function Home({ searchParams }: HomeProps) {
         orderBy: { createdAt: "desc" },
         take: 100,
       }),
+      prisma.shopHours.findMany({
+        orderBy: { dayOfWeek: "asc" },
+      }),
     ]);
   } catch (error) {
     console.error("Could not load dashboard data", error);
@@ -223,8 +229,26 @@ export default async function Home({ searchParams }: HomeProps) {
     );
   }
 
-  const [staff, serviceGroups, bookings, customerBookings] = dashboardData;
+  const [staff, serviceGroups, bookings, customerBookings, savedShopHours] =
+    dashboardData;
   const services = serviceGroups.flatMap((group) => group.services);
+  const savedShopHoursByDay = new Map(
+    savedShopHours.map((row) => [row.dayOfWeek, row]),
+  );
+  const shopHours = getDefaultShopHours().map((fallback) => {
+    const saved = savedShopHoursByDay.get(fallback.dayOfWeek);
+
+    return saved
+      ? {
+          dayOfWeek: saved.dayOfWeek,
+          dayName: fallback.dayName,
+          openTime: saved.openTime,
+          closeTime: saved.closeTime,
+          isClosed: saved.isClosed,
+          note: saved.note,
+        }
+      : fallback;
+  });
 
   const customers = Array.from(
     customerBookings
@@ -962,6 +986,93 @@ export default async function Home({ searchParams }: HomeProps) {
                     </ConfirmSubmitButton>
                   </form>
                 </div>
+              </section>
+            )}
+
+            {activeSection === "shop" && (
+              <section className="rounded-md border border-stone-200 bg-white p-5 shadow-sm">
+                <div className="flex flex-col gap-1">
+                  <h2 className="text-xl font-semibold">Shop opening hours</h2>
+                  <p className="text-sm text-stone-600">
+                    These hours and notes are shown on the public website. Use the
+                    note for holidays, fully booked days, or temporary changes.
+                  </p>
+                </div>
+
+                <form action={updateShopHours} className="mt-5 grid gap-4">
+                  <input type="hidden" name="redirectTo" value="/admin?section=shop" />
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[760px] text-left text-sm">
+                      <thead className="border-b border-stone-200 bg-stone-100 text-xs uppercase tracking-[0.12em] text-stone-500">
+                        <tr>
+                          <th className="px-3 py-3">Day</th>
+                          <th className="px-3 py-3">Open</th>
+                          <th className="px-3 py-3">Close</th>
+                          <th className="px-3 py-3">Closed</th>
+                          <th className="px-3 py-3">Public note</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {shopHours.map((row) => (
+                          <tr key={row.dayOfWeek} className="border-b border-stone-100">
+                            <td className="px-3 py-3 font-medium">{row.dayName}</td>
+                            <td className="px-3 py-3">
+                              <input
+                                name={`openTime-${row.dayOfWeek}`}
+                                type="time"
+                                required
+                                step={1800}
+                                defaultValue={row.openTime}
+                                className="rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-700"
+                              />
+                            </td>
+                            <td className="px-3 py-3">
+                              <input
+                                name={`closeTime-${row.dayOfWeek}`}
+                                type="time"
+                                required
+                                step={1800}
+                                defaultValue={row.closeTime}
+                                className="rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-700"
+                              />
+                            </td>
+                            <td className="px-3 py-3">
+                              <label className="inline-flex items-center gap-2">
+                                <input
+                                  name={`closed-${row.dayOfWeek}`}
+                                  type="checkbox"
+                                  defaultChecked={row.isClosed}
+                                  className="h-4 w-4 rounded border-stone-300"
+                                />
+                                <span className="text-stone-600">Closed</span>
+                              </label>
+                            </td>
+                            <td className="px-3 py-3">
+                              <input
+                                name={`note-${row.dayOfWeek}`}
+                                defaultValue={row.note ?? ""}
+                                className="w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-700"
+                                placeholder="Holiday, fully booked, special hours..."
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div>
+                    <ConfirmSubmitButton
+                      className="rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-800"
+                      confirmTitle="Update shop hours?"
+                      confirmMessage="These opening hours and notes will be shown on the public website."
+                      confirmAction="Save shop hours"
+                    >
+                      Save shop hours
+                    </ConfirmSubmitButton>
+                  </div>
+                </form>
               </section>
             )}
 

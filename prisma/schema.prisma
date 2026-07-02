@@ -76,3 +76,13 @@ model StaffServiceGroup {
 
   @@unique([staffId, groupId])
 }
+
+model ShopHours {
+  id        Int      @id @default(autoincrement())
+  dayOfWeek Int      @unique
+  openTime  String
+  closeTime String
+  isClosed  Boolean  @default(false)
+  note      String?
+  updatedAt DateTime @updatedAt
+}

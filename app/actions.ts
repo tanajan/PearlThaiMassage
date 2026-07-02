@@ -96,6 +96,22 @@ function parseDateAndHalfHour(formData: FormData) {
   return combineDateAndTime(date, time);
 }
 
+function parseClockTime(value: FormDataEntryValue | null, label: string) {
+  const time = cleanText(value);
+
+  if (!/^\d{2}:\d{2}$/.test(time)) {
+    throw new Error(`${label} must be a valid time.`);
+  }
+
+  const [hour, minute] = time.split(":").map(Number);
+
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+    throw new Error(`${label} must be a valid time.`);
+  }
+
+  return time;
+}
+
 async function assertGroupNameIsNotDuplicate(name: string, excludingId?: number) {
   const existingGroup = await prisma.serviceGroup.findFirst({
     where: {
@@ -473,6 +489,54 @@ export async function updateStaffSchedule(formData: FormData) {
 
   revalidatePath("/");
   redirectWithMessage("success", "Working hours updated.", redirectTo);
+}
+
+export async function updateShopHours(formData: FormData) {
+  const redirectTo = safeRedirectPath(formData.get("redirectTo"));
+
+  try {
+    const rows = DAYS.map((dayName, dayOfWeek) => {
+      const isClosed = formData.get(`closed-${dayOfWeek}`) === "on";
+      const openTime = parseClockTime(formData.get(`openTime-${dayOfWeek}`), `${dayName} open time`);
+      const closeTime = parseClockTime(
+        formData.get(`closeTime-${dayOfWeek}`),
+        `${dayName} close time`,
+      );
+
+      if (!isClosed && parseTimeToMinutes(closeTime) <= parseTimeToMinutes(openTime)) {
+        throw new Error(`${dayName} close time must be after the open time.`);
+      }
+
+      return {
+        dayOfWeek,
+        openTime,
+        closeTime,
+        isClosed,
+        note: cleanOptionalText(formData.get(`note-${dayOfWeek}`)),
+      };
+    });
+
+    await prisma.$transaction(
+      rows.map((row) =>
+        prisma.shopHours.upsert({
+          where: { dayOfWeek: row.dayOfWeek },
+          update: row,
+          create: row,
+        }),
+      ),
+    );
+  } catch (error) {
+    redirectWithMessage(
+      "error",
+      error instanceof Error ? error.message : "Could not update shop hours.",
+      redirectTo,
+    );
+  }
+
+  revalidatePath("/");
+  revalidatePath("/contact");
+  revalidatePath("/admin");
+  redirectWithMessage("success", "Shop hours updated.", redirectTo);
 }
 
 export async function createBooking(formData: FormData) {

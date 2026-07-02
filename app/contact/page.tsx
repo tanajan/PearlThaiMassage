@@ -1,7 +1,13 @@
 import Link from "next/link";
+import { OpeningHoursTable } from "@/app/components/OpeningHoursTable";
 import { PublicLayout } from "@/app/components/PublicLayout";
+import { getShopHours } from "@/lib/shopHours";
 
-export default function ContactPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ContactPage() {
+  const shopHours = await getShopHours();
+
   return (
     <PublicLayout>
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-2 lg:gap-8 lg:px-8">
@@ -15,8 +21,9 @@ export default function ContactPage() {
           <div className="mt-6 space-y-6 text-stone-700">
             <div>
               <h2 className="text-xl font-semibold text-stone-950">Opening Hours</h2>
-              <p className="mt-2">Monday - Saturday: 09:00 - 19:00</p>
-              <p>Sunday: 09:00 - 18:00</p>
+              <div className="mt-3">
+                <OpeningHoursTable hours={shopHours} />
+              </div>
             </div>
             <div>
               <h2 className="text-xl font-semibold text-stone-950">Address</h2>
