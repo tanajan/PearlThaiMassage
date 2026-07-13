@@ -777,7 +777,7 @@ export default async function Home({ searchParams }: HomeProps) {
                                 formId={`delete-group-${group.id}`}
                                 className="rounded-md border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
                                 confirmTitle="Delete this service group?"
-                                confirmMessage="Only empty groups can be deleted. Delete the services inside this group first."
+                                confirmMessage="This will delete this group, every service inside it, and any bookings using those services."
                                 confirmAction="Delete group"
                               >
                                 Delete group
@@ -857,7 +857,7 @@ export default async function Home({ searchParams }: HomeProps) {
                                         formId={`delete-service-${service.id}`}
                                         className="rounded-md border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
                                         confirmTitle="Delete this service?"
-                                        confirmMessage="Services with existing bookings cannot be deleted."
+                                        confirmMessage="This will delete the service and any bookings that use it."
                                         confirmAction="Delete service"
                                       >
                                         Delete

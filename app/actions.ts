@@ -299,13 +299,17 @@ export async function deleteServiceGroup(formData: FormData) {
 
   try {
     const groupId = toPositiveInteger(formData.get("groupId"), "Service group");
-    const serviceCount = await prisma.service.count({ where: { groupId } });
-
-    if (serviceCount > 0) {
-      throw new Error("Delete the services in this group before deleting the group.");
-    }
+    const services = await prisma.service.findMany({
+      where: { groupId },
+      select: { id: true },
+    });
+    const serviceIds = services.map((service) => service.id);
 
     await prisma.$transaction([
+      ...(serviceIds.length > 0
+        ? [prisma.booking.deleteMany({ where: { serviceId: { in: serviceIds } } })]
+        : []),
+      prisma.service.deleteMany({ where: { groupId } }),
       prisma.staffServiceGroup.deleteMany({ where: { groupId } }),
       prisma.serviceGroup.delete({ where: { id: groupId } }),
     ]);
@@ -318,6 +322,9 @@ export async function deleteServiceGroup(formData: FormData) {
   }
 
   revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin-hours");
+  revalidatePath("/staff-calendar");
   redirectWithMessage("success", "Service group deleted.", redirectTo);
 }
 
@@ -414,13 +421,11 @@ export async function deleteService(formData: FormData) {
 
   try {
     const serviceId = toPositiveInteger(formData.get("serviceId"), "Service");
-    const bookingCount = await prisma.booking.count({ where: { serviceId } });
 
-    if (bookingCount > 0) {
-      throw new Error("This service has bookings, so it cannot be deleted.");
-    }
-
-    await prisma.service.delete({ where: { id: serviceId } });
+    await prisma.$transaction([
+      prisma.booking.deleteMany({ where: { serviceId } }),
+      prisma.service.delete({ where: { id: serviceId } }),
+    ]);
   } catch (error) {
     redirectWithMessage(
       "error",
@@ -430,6 +435,9 @@ export async function deleteService(formData: FormData) {
   }
 
   revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin-hours");
+  revalidatePath("/staff-calendar");
   redirectWithMessage("success", "Service deleted.", redirectTo);
 }
 
