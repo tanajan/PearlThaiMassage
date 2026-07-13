@@ -183,13 +183,9 @@ export async function deleteStaff(formData: FormData) {
 
   try {
     const staffId = toPositiveInteger(formData.get("staffId"), "Staff");
-    const bookingCount = await prisma.booking.count({ where: { staffId } });
-
-    if (bookingCount > 0) {
-      throw new Error("This staff member has bookings, so they cannot be deleted.");
-    }
 
     await prisma.$transaction([
+      prisma.booking.deleteMany({ where: { staffId } }),
       prisma.workingHours.deleteMany({ where: { staffId } }),
       prisma.staffServiceGroup.deleteMany({ where: { staffId } }),
       prisma.staff.delete({ where: { id: staffId } }),
@@ -203,6 +199,9 @@ export async function deleteStaff(formData: FormData) {
   }
 
   revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin-hours");
+  revalidatePath("/staff-calendar");
   redirectWithMessage("success", "Staff member deleted.", redirectTo);
 }
 

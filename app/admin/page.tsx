@@ -540,7 +540,7 @@ export default async function Home({ searchParams }: HomeProps) {
                                 formId={`delete-staff-${person.id}`}
                                 className="rounded-md border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
                                 confirmTitle="Delete this staff member?"
-                                confirmMessage="This will remove the staff member, their working hours, and service assignments. Staff with existing bookings cannot be deleted."
+                                confirmMessage="This will delete the staff member, their working hours, service assignments, and any bookings assigned to them."
                                 confirmAction="Delete staff"
                               >
                                 Delete
