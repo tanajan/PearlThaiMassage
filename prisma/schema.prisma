@@ -15,6 +15,7 @@ model Staff {
   createdAt DateTime  @default(now())
   workingHours WorkingHours[]
   staffServiceGroups StaffServiceGroup[]
+  users     User[]
 }
 
 model ServiceGroup {
@@ -85,4 +86,36 @@ model ShopHours {
   isClosed  Boolean  @default(false)
   note      String?
   updatedAt DateTime @updatedAt
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  phone     String    @unique
+  name      String?
+  role      String    @default("customer")
+  staffId   Int?
+  staff     Staff?    @relation(fields: [staffId], references: [id])
+  sessions  Session[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  tokenHash String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model PhoneVerificationCode {
+  id        Int      @id @default(autoincrement())
+  phone     String
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([phone])
 }

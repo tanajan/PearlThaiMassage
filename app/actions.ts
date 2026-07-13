@@ -2,6 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import {
+  clearSession,
+  createSession,
+  createVerificationCode,
+  hashSecret,
+  isUserRole,
+  normalizePhone,
+  requireOwner,
+} from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_SERVICE_COLOUR, isServiceColour } from "@/lib/serviceColours";
 import {
@@ -94,6 +103,161 @@ function parseDateAndHalfHour(formData: FormData) {
   );
 
   return combineDateAndTime(date, time);
+}
+
+function parseBookingStatus(value: FormDataEntryValue | null) {
+  const status = cleanText(value);
+
+  if (["coming", "completed", "cancelled"].includes(status)) {
+    return status;
+  }
+
+  throw new Error("Choose a valid booking status.");
+}
+
+function ownerPhoneList() {
+  return (process.env.OWNER_PHONE_NUMBERS ?? "")
+    .split(",")
+    .map(normalizePhone)
+    .filter(Boolean);
+}
+
+async function roleForVerifiedPhone(phone: string) {
+  const ownerCount = await prisma.user.count({ where: { role: "owner" } });
+
+  if (ownerCount === 0 || ownerPhoneList().includes(phone)) {
+    return "owner";
+  }
+
+  return "customer";
+}
+
+async function findMatchingStaffId(phone: string) {
+  const staff = await prisma.staff.findMany({
+    where: { phone: { not: null } },
+    select: { id: true, phone: true },
+  });
+  const match = staff.find((person) => normalizePhone(person.phone ?? "") === phone);
+
+  return match?.id ?? null;
+}
+
+export async function requestPhoneCode(formData: FormData) {
+  const phone = normalizePhone(cleanText(formData.get("phone")));
+
+  if (phone.length < 8) {
+    redirectWithMessage("error", "Enter a valid phone number.", "/login");
+  }
+
+  const code = createVerificationCode();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  await prisma.phoneVerificationCode.create({
+    data: {
+      phone,
+      codeHash: hashSecret(code),
+      expiresAt,
+    },
+  });
+
+  // Demo mode: this code is shown on screen. Later this is where SMS sending plugs in.
+  redirect(
+    `/verify?phone=${encodeURIComponent(phone)}&demoCode=${encodeURIComponent(code)}`,
+  );
+}
+
+export async function verifyPhoneCode(formData: FormData) {
+  const phone = normalizePhone(cleanText(formData.get("phone")));
+  const code = cleanText(formData.get("code"));
+  let destination = "/book";
+
+  try {
+    const verification = await prisma.phoneVerificationCode.findFirst({
+      where: {
+        phone,
+        codeHash: hashSecret(code),
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!verification) {
+      throw new Error("That verification code is invalid or expired.");
+    }
+
+    await prisma.phoneVerificationCode.update({
+      where: { id: verification.id },
+      data: { usedAt: new Date() },
+    });
+
+    const existingUser = await prisma.user.findUnique({ where: { phone } });
+    const role = existingUser?.role ?? (await roleForVerifiedPhone(phone));
+    const staffId = existingUser?.staffId ?? (await findMatchingStaffId(phone));
+    const user = await prisma.user.upsert({
+      where: { phone },
+      update: { staffId },
+      create: { phone, role, staffId },
+    });
+
+    await createSession(user.id);
+
+    if (user.role === "owner") {
+      destination = "/admin";
+    } else if (user.role === "staff") {
+      destination = "/staff-calendar";
+    }
+  } catch (error) {
+    redirectWithMessage(
+      "error",
+      error instanceof Error ? error.message : "Could not verify phone.",
+      `/verify?phone=${encodeURIComponent(phone)}`,
+    );
+  }
+
+  redirect(destination);
+}
+
+export async function logout() {
+  await clearSession();
+  redirect("/login");
+}
+
+export async function updateUserAccess(formData: FormData) {
+  await requireOwner();
+  const redirectTo = safeRedirectPath(formData.get("redirectTo"));
+
+  try {
+    const userId = toPositiveInteger(formData.get("userId"), "User");
+    const role = cleanText(formData.get("role"));
+    const staffIdValue = cleanText(formData.get("staffId"));
+    const staffId = staffIdValue ? Number(staffIdValue) : null;
+
+    if (!isUserRole(role)) {
+      throw new Error("Choose a valid access level.");
+    }
+
+    if (staffId !== null && (!Number.isInteger(staffId) || staffId <= 0)) {
+      throw new Error("Choose a valid staff profile.");
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        role,
+        staffId: role === "staff" ? staffId : null,
+      },
+    });
+  } catch (error) {
+    redirectWithMessage(
+      "error",
+      error instanceof Error ? error.message : "Could not update user access.",
+      redirectTo,
+    );
+  }
+
+  revalidatePath("/admin");
+  redirectWithMessage("success", "User access updated.", redirectTo);
 }
 
 function parseClockTime(value: FormDataEntryValue | null, label: string) {
@@ -599,6 +763,7 @@ export async function createBooking(formData: FormData) {
         serviceId,
         startTime,
         endTime,
+        status: "coming",
       },
     });
   } catch (error) {
@@ -610,6 +775,80 @@ export async function createBooking(formData: FormData) {
   }
 
   revalidatePath("/");
+  redirectWithMessage("success", "Booking created.", redirectTo);
+}
+
+export async function createCustomerBooking(formData: FormData) {
+  const user = await import("@/lib/auth").then((mod) => mod.requireUser());
+  const redirectTo = safeRedirectPath(formData.get("redirectTo"));
+
+  try {
+    const customer = cleanText(formData.get("customer"));
+    const staffId = toPositiveInteger(formData.get("staffId"), "Staff");
+    const serviceId = toPositiveInteger(formData.get("serviceId"), "Service");
+    const startTime = parseDateAndHalfHour(formData);
+
+    if (!customer) {
+      throw new Error("Your name is required.");
+    }
+
+    const service = await prisma.service.findUnique({
+      where: { id: serviceId },
+      include: {
+        group: {
+          include: {
+            staffServiceGroups: {
+              where: { staffId },
+            },
+          },
+        },
+      },
+    });
+
+    if (!service || !isSlotDuration(service.duration)) {
+      throw new Error("Choose a valid service.");
+    }
+
+    if (service.group.staffServiceGroups.length === 0) {
+      throw new Error("This staff member is not assigned to that service group.");
+    }
+
+    const endTime = await assertBookingFitsStaffSchedule({
+      staffId,
+      startTime,
+      duration: service.duration,
+    });
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: { name: customer },
+      }),
+      prisma.booking.create({
+        data: {
+          customer,
+          phone: user.phone,
+          note: cleanOptionalText(formData.get("note")),
+          staffId,
+          serviceId,
+          startTime,
+          endTime,
+          status: "coming",
+        },
+      }),
+    ]);
+  } catch (error) {
+    redirectWithMessage(
+      "error",
+      error instanceof Error ? error.message : "Could not create booking.",
+      redirectTo,
+    );
+  }
+
+  revalidatePath("/book");
+  revalidatePath("/admin");
+  revalidatePath("/admin-hours");
+  revalidatePath("/staff-calendar");
   redirectWithMessage("success", "Booking created.", redirectTo);
 }
 
@@ -677,6 +916,32 @@ export async function updateBooking(formData: FormData) {
 
   revalidatePath("/");
   redirectWithMessage("success", "Booking updated.", redirectTo);
+}
+
+export async function updateBookingStatus(formData: FormData) {
+  const redirectTo = safeRedirectPath(formData.get("redirectTo"));
+
+  try {
+    const bookingId = toPositiveInteger(formData.get("bookingId"), "Booking");
+    const status = parseBookingStatus(formData.get("status"));
+
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: { status },
+    });
+  } catch (error) {
+    redirectWithMessage(
+      "error",
+      error instanceof Error ? error.message : "Could not update booking status.",
+      redirectTo,
+    );
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin-hours");
+  revalidatePath("/staff-calendar");
+  redirectWithMessage("success", "Booking status updated.", redirectTo);
 }
 
 export async function moveBooking(formData: FormData) {

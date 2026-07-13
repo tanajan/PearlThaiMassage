@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
+import { logout } from "@/app/actions";
+import { requireStaffOrOwner } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   addDays,
@@ -65,18 +67,21 @@ function bookingEndMinutes(booking: { endTime: Date }) {
 
 export default async function StaffCalendar({ searchParams }: StaffCalendarProps) {
   await connection();
+  const user = await requireStaffOrOwner();
 
   const params = await searchParams;
   const selectedDate = parseDateParam(params?.date);
   const view = views.includes(params?.view as (typeof views)[number])
     ? (params?.view as (typeof views)[number])
     : "week";
-  const selectedStaffId = Number(params?.staffId) || undefined;
+  const selectedStaffId =
+    user.role === "owner" ? Number(params?.staffId) || undefined : user.staffId ?? undefined;
 
   const staff = await prisma.staff.findMany({
     orderBy: { name: "asc" },
   });
-  const activeStaffId = selectedStaffId ?? staff[0]?.id;
+  const activeStaffId =
+    user.role === "owner" ? selectedStaffId ?? staff[0]?.id : user.staffId ?? undefined;
 
   const rangeStart =
     view === "month"
@@ -95,7 +100,7 @@ export default async function StaffCalendar({ searchParams }: StaffCalendarProps
     ? await prisma.booking.findMany({
         where: {
           staffId: activeStaffId,
-          status: { not: "cancelled" },
+          status: { notIn: ["cancelled", "completed"] },
           startTime: { gte: rangeStart },
           endTime: { lt: rangeEnd },
         },
@@ -123,8 +128,11 @@ export default async function StaffCalendar({ searchParams }: StaffCalendarProps
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         <header className="flex flex-col gap-4 border-b border-stone-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <Link href="/" className="text-sm font-medium text-amber-700">
-              Back to booking desk
+            <Link
+              href={user.role === "owner" ? "/admin" : "/"}
+              className="text-sm font-medium text-amber-700"
+            >
+              {user.role === "owner" ? "Back to dashboard" : "Back to website"}
             </Link>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight">
               Staff calendar demo
@@ -135,19 +143,28 @@ export default async function StaffCalendar({ searchParams }: StaffCalendarProps
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {staff.map((person) => (
-              <Link
-                key={person.id}
-                href={hrefFor({ date: selectedDate, view, staffId: person.id })}
-                className={`rounded-md border px-3 py-2 text-sm font-medium ${
-                  person.id === activeStaffId
-                    ? "border-stone-950 bg-stone-950 text-white"
-                    : "border-stone-300 bg-white hover:bg-stone-100"
-                }`}
+            {user.role === "owner" &&
+              staff.map((person) => (
+                <Link
+                  key={person.id}
+                  href={hrefFor({ date: selectedDate, view, staffId: person.id })}
+                  className={`rounded-md border px-3 py-2 text-sm font-medium ${
+                    person.id === activeStaffId
+                      ? "border-stone-950 bg-stone-950 text-white"
+                      : "border-stone-300 bg-white hover:bg-stone-100"
+                  }`}
+                >
+                  {person.name}
+                </Link>
+              ))}
+            <form action={logout}>
+              <button
+                type="submit"
+                className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-medium hover:bg-stone-100"
               >
-                {person.name}
-              </Link>
-            ))}
+                Logout
+              </button>
+            </form>
           </div>
         </header>
 

@@ -8,12 +8,16 @@ import {
   deleteServiceGroup,
   updateService,
   updateServiceGroup,
+  updateBookingStatus,
   updateShopHours,
   updateStaffSchedule,
+  updateUserAccess,
+  logout,
 } from "@/app/actions";
 import { connection } from "next/server";
 import { ConfirmSubmitButton } from "@/app/components/ConfirmSubmitButton";
 import { FlashModal } from "@/app/components/FlashModal";
+import { requireOwner } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getServiceColourTheme, SERVICE_COLOURS } from "@/lib/serviceColours";
 import { getDefaultShopHours } from "@/lib/shopHours";
@@ -41,6 +45,7 @@ const sections = [
   { id: "staff", label: "Staff" },
   { id: "service", label: "Service" },
   { id: "shop", label: "Shop" },
+  { id: "access", label: "Access" },
   { id: "customer", label: "Customer" },
 ] as const;
 
@@ -74,6 +79,26 @@ function colourCardStyle(colour: string) {
     background: `linear-gradient(135deg, ${theme.faint} 0%, #ffffff 58%, ${theme.soft} 100%)`,
     borderColor: theme.soft,
   };
+}
+
+function bookingStatusLabel(status: string) {
+  return status === "completed"
+    ? "Completed"
+    : status === "cancelled"
+      ? "Cancelled"
+      : "Coming";
+}
+
+function bookingStatusClass(status: string) {
+  if (status === "completed") {
+    return "bg-emerald-100 text-emerald-800";
+  }
+
+  if (status === "cancelled") {
+    return "bg-red-100 text-red-800";
+  }
+
+  return "bg-amber-100 text-amber-900";
 }
 
 function ColourPicker({
@@ -130,6 +155,14 @@ function DashboardHeader() {
           </p>
         </div>
         <nav className="flex flex-wrap gap-2 text-sm">
+          <form action={logout}>
+            <button
+              type="submit"
+              className="rounded-md border border-stone-300 px-3 py-2 font-medium hover:bg-stone-100"
+            >
+              Logout
+            </button>
+          </form>
           <a
             href="/staff-calendar"
             className="rounded-md border border-stone-300 px-3 py-2 font-medium hover:bg-stone-100"
@@ -150,6 +183,7 @@ function DashboardHeader() {
 
 export default async function Home({ searchParams }: HomeProps) {
   await connection();
+  await requireOwner();
 
   const params = await searchParams;
   const activeSection = isSection(params?.section) ? params.section : "booking";
@@ -181,7 +215,7 @@ export default async function Home({ searchParams }: HomeProps) {
       }),
       prisma.booking.findMany({
         where: {
-          status: { not: "cancelled" },
+          status: { notIn: ["cancelled", "completed"] },
           startTime: { gte: today },
         },
         include: {
@@ -196,11 +230,15 @@ export default async function Home({ searchParams }: HomeProps) {
           staff: true,
           service: true,
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { startTime: "desc" },
         take: 100,
       }),
       prisma.shopHours.findMany({
         orderBy: { dayOfWeek: "asc" },
+      }),
+      prisma.user.findMany({
+        include: { staff: true },
+        orderBy: { createdAt: "desc" },
       }),
     ]);
   } catch (error) {
@@ -229,7 +267,7 @@ export default async function Home({ searchParams }: HomeProps) {
     );
   }
 
-  const [staff, serviceGroups, bookings, customerBookings, savedShopHours] =
+  const [staff, serviceGroups, bookings, customerBookings, savedShopHours, users] =
     dashboardData;
   const services = serviceGroups.flatMap((group) => group.services);
   const savedShopHoursByDay = new Map(
@@ -435,6 +473,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   </form>
                 </div>
 
+                <div className="grid gap-6">
                 <div className="rounded-md border border-stone-200 bg-white p-5 shadow-sm">
                   <h2 className="text-xl font-semibold">Upcoming bookings</h2>
                   <div className="mt-5 flex flex-col gap-3">
@@ -456,9 +495,18 @@ export default async function Home({ searchParams }: HomeProps) {
                                 {formatDateTime(booking.endTime)}
                               </p>
                             </div>
-                            <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700">
-                              {booking.service.duration} min
-                            </span>
+                            <div className="flex flex-col items-end gap-2">
+                              <span
+                                className={`rounded-full px-3 py-1 text-xs font-medium ${bookingStatusClass(
+                                  booking.status,
+                                )}`}
+                              >
+                                {bookingStatusLabel(booking.status)}
+                              </span>
+                              <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700">
+                                {booking.service.duration} min
+                              </span>
+                            </div>
                           </div>
                           <p className="mt-3 text-sm text-stone-700">
                             Staff: <strong>{booking.staff.name}</strong>
@@ -466,10 +514,142 @@ export default async function Home({ searchParams }: HomeProps) {
                           <p className="mt-1 text-sm text-stone-600">
                             Service: {booking.service.name}
                           </p>
+                          <form
+                            action={updateBookingStatus}
+                            className="mt-3 flex flex-wrap items-end gap-2"
+                          >
+                            <input
+                              type="hidden"
+                              name="bookingId"
+                              value={booking.id}
+                            />
+                            <input
+                              type="hidden"
+                              name="redirectTo"
+                              value="/admin?section=booking"
+                            />
+                            <label className="flex flex-col gap-1 text-xs font-medium text-stone-600">
+                              Status
+                              <select
+                                name="status"
+                                defaultValue={
+                                  booking.status === "confirmed"
+                                    ? "coming"
+                                    : booking.status
+                                }
+                                className="rounded-md border border-stone-300 px-2 py-1.5 text-sm font-normal text-stone-950 outline-none focus:border-amber-700"
+                              >
+                                <option value="coming">Coming</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+                            </label>
+                            <button
+                              type="submit"
+                              className="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-semibold hover:bg-stone-100"
+                            >
+                              Save
+                            </button>
+                          </form>
                         </article>
                       ))
                     )}
                   </div>
+                </div>
+
+                <div className="rounded-md border border-stone-200 bg-white p-5 shadow-sm">
+                  <h2 className="text-xl font-semibold">Booking history</h2>
+                  <p className="mt-1 text-sm text-stone-600">
+                    Recent bookings with their current status.
+                  </p>
+                  <div className="mt-5 max-h-[520px] overflow-auto">
+                    <table className="w-full min-w-[720px] text-left text-sm">
+                      <thead className="sticky top-0 border-b border-stone-200 bg-stone-100 text-xs uppercase tracking-[0.12em] text-stone-500">
+                        <tr>
+                          <th className="px-3 py-3">Customer</th>
+                          <th className="px-3 py-3">Date</th>
+                          <th className="px-3 py-3">Staff</th>
+                          <th className="px-3 py-3">Service</th>
+                          <th className="px-3 py-3">Status</th>
+                          <th className="px-3 py-3">Update</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {customerBookings.length === 0 ? (
+                          <tr>
+                            <td className="px-3 py-4 text-stone-500" colSpan={6}>
+                              No booking history yet.
+                            </td>
+                          </tr>
+                        ) : (
+                          customerBookings.map((booking) => (
+                            <tr key={booking.id} className="border-b border-stone-100">
+                              <td className="px-3 py-3 font-medium">
+                                {booking.customer}
+                                {booking.phone && (
+                                  <div className="text-xs font-normal text-stone-500">
+                                    {booking.phone}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-3 py-3 text-stone-600">
+                                {formatDateTime(booking.startTime)}
+                              </td>
+                              <td className="px-3 py-3 text-stone-600">
+                                {booking.staff.name}
+                              </td>
+                              <td className="px-3 py-3 text-stone-600">
+                                {booking.service.name}
+                              </td>
+                              <td className="px-3 py-3">
+                                <span
+                                  className={`rounded-full px-3 py-1 text-xs font-medium ${bookingStatusClass(
+                                    booking.status,
+                                  )}`}
+                                >
+                                  {bookingStatusLabel(booking.status)}
+                                </span>
+                              </td>
+                              <td className="px-3 py-3">
+                                <form action={updateBookingStatus} className="flex gap-2">
+                                  <input
+                                    type="hidden"
+                                    name="bookingId"
+                                    value={booking.id}
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="redirectTo"
+                                    value="/admin?section=booking"
+                                  />
+                                  <select
+                                    name="status"
+                                    defaultValue={
+                                      booking.status === "confirmed"
+                                        ? "coming"
+                                        : booking.status
+                                    }
+                                    className="rounded-md border border-stone-300 px-2 py-1.5 outline-none focus:border-amber-700"
+                                  >
+                                    <option value="coming">Coming</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                  </select>
+                                  <button
+                                    type="submit"
+                                    className="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-semibold hover:bg-stone-100"
+                                  >
+                                    Save
+                                  </button>
+                                </form>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
                 </div>
               </section>
             )}
@@ -1073,6 +1253,91 @@ export default async function Home({ searchParams }: HomeProps) {
                     </ConfirmSubmitButton>
                   </div>
                 </form>
+              </section>
+            )}
+
+            {activeSection === "access" && (
+              <section className="rounded-md border border-stone-200 bg-white p-5 shadow-sm">
+                <h2 className="text-xl font-semibold">User access levels</h2>
+                <p className="mt-1 text-sm text-stone-600">
+                  Only owners can change access levels. Staff accounts should be
+                  linked to the matching staff profile so they only see their own
+                  calendar.
+                </p>
+
+                <div className="mt-5 overflow-x-auto">
+                  <table className="w-full min-w-[780px] text-left text-sm">
+                    <thead className="border-b border-stone-200 bg-stone-100 text-xs uppercase tracking-[0.12em] text-stone-500">
+                      <tr>
+                        <th className="px-3 py-3">Phone</th>
+                        <th className="px-3 py-3">Current level</th>
+                        <th className="px-3 py-3">Staff profile</th>
+                        <th className="px-3 py-3">Change access</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.length === 0 ? (
+                        <tr>
+                          <td className="px-3 py-4 text-stone-500" colSpan={4}>
+                            No users have logged in yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        users.map((user) => (
+                          <tr key={user.id} className="border-b border-stone-100">
+                            <td className="px-3 py-3 font-medium">{user.phone}</td>
+                            <td className="px-3 py-3 capitalize text-stone-600">
+                              {user.role}
+                            </td>
+                            <td className="px-3 py-3 text-stone-600">
+                              {user.staff?.name ?? "-"}
+                            </td>
+                            <td className="px-3 py-3">
+                              <form
+                                action={updateUserAccess}
+                                className="flex flex-wrap gap-2"
+                              >
+                                <input type="hidden" name="userId" value={user.id} />
+                                <input
+                                  type="hidden"
+                                  name="redirectTo"
+                                  value="/admin?section=access"
+                                />
+                                <select
+                                  name="role"
+                                  defaultValue={user.role}
+                                  className="rounded-md border border-stone-300 px-2 py-1.5 outline-none focus:border-amber-700"
+                                >
+                                  <option value="owner">Owner</option>
+                                  <option value="staff">Staff</option>
+                                  <option value="customer">Customer</option>
+                                </select>
+                                <select
+                                  name="staffId"
+                                  defaultValue={user.staffId ?? ""}
+                                  className="rounded-md border border-stone-300 px-2 py-1.5 outline-none focus:border-amber-700"
+                                >
+                                  <option value="">No staff profile</option>
+                                  {staff.map((person) => (
+                                    <option key={person.id} value={person.id}>
+                                      {person.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="submit"
+                                  className="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-semibold hover:bg-stone-100"
+                                >
+                                  Save
+                                </button>
+                              </form>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </section>
             )}
 

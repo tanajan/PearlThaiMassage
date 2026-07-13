@@ -39,7 +39,7 @@ export default async function ContactPage() {
 
           <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
             <Link
-              href="/admin?section=booking"
+              href="/book"
               className="rounded-full bg-[#315c46] px-5 py-3 text-center text-sm font-semibold text-white hover:bg-[#263f32]"
             >
               Book an Appointment

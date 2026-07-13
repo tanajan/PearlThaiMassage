@@ -52,7 +52,7 @@ export default async function PublicHome() {
           </p>
           <div className="mt-8 grid w-full max-w-xs gap-3 sm:flex sm:max-w-none sm:flex-wrap sm:justify-center">
             <Link
-              href="/admin?section=booking"
+              href="/book"
               className="rounded-full bg-[#7fa66a] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#dcebc8] hover:text-[#263f32]"
             >
               Book Now

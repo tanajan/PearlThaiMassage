@@ -92,7 +92,7 @@ export async function assertBookingFitsStaffSchedule({
   const overlappingBooking = await prisma.booking.findFirst({
     where: {
       staffId,
-      status: { not: "cancelled" },
+      status: { notIn: ["cancelled", "completed"] },
       startTime: { lt: endTime },
       endTime: { gt: startTime },
       ...(excludingBookingId ? { id: { not: excludingBookingId } } : {}),

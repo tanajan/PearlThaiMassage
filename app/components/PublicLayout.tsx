@@ -43,7 +43,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                 Admin
               </Link>
               <Link
-                href="/admin?section=booking"
+                href="/book"
                 className="rounded-full bg-[#7fa66a] px-4 py-2 text-white transition hover:bg-[#dcebc8] hover:text-[#263f32]"
               >
                 Book Now
@@ -68,7 +68,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                   Admin
                 </Link>
                 <Link
-                  href="/admin?section=booking"
+                  href="/book"
                   className="rounded-md bg-[#7fa66a] px-3 py-2 text-white hover:bg-[#315c46]"
                 >
                   Book Now

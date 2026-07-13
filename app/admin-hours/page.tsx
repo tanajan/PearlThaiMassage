@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { connection } from "next/server";
+import { requireOwner } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AdminHoursBoard } from "./AdminHoursBoard";
 import {
@@ -27,6 +28,7 @@ function dateHref(date: Date) {
 
 export default async function AdminHours({ searchParams }: AdminHoursProps) {
   await connection();
+  await requireOwner();
 
   const params = await searchParams;
   const selectedDate = parseDateParam(params?.date);
@@ -45,7 +47,7 @@ export default async function AdminHours({ searchParams }: AdminHoursProps) {
         },
         bookings: {
           where: {
-            status: { not: "cancelled" },
+            status: { notIn: ["cancelled", "completed"] },
             startTime: { gte: dayStart },
             endTime: { lt: dayEnd },
           },
