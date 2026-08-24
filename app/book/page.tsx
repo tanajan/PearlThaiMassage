@@ -200,6 +200,26 @@ export default async function BookPage({ searchParams }: BookPageProps) {
               </div>
             </label>
             <label className="flex flex-col gap-2 text-sm font-medium sm:col-span-2">
+              Home massage
+              <span className="flex items-center gap-2 rounded-md border border-[#dcebc8] bg-[#f3f7ef] px-3 py-2 font-normal">
+                <input
+                  name="isHomeMassage"
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-stone-300"
+                />
+                I would like this as a home massage
+              </span>
+            </label>
+            <label className="flex flex-col gap-2 text-sm font-medium sm:col-span-2">
+              Home massage location
+              <textarea
+                name="location"
+                rows={2}
+                className="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
+                placeholder="Required if you tick home massage"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm font-medium sm:col-span-2">
               Note
               <textarea
                 name="note"
@@ -242,6 +262,11 @@ export default async function BookPage({ searchParams }: BookPageProps) {
                   <p className="mt-1 text-sm text-stone-600">
                     Staff: {booking.staff.name}
                   </p>
+                  {booking.isHomeMassage && (
+                    <p className="mt-1 text-sm text-stone-600">
+                      Home massage: {booking.location ?? "Location missing"}
+                    </p>
+                  )}
                   <p className="mt-1 text-sm capitalize text-stone-500">
                     Status: {booking.status === "confirmed" ? "coming" : booking.status}
                   </p>

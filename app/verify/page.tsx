@@ -1,34 +1,40 @@
 import Link from "next/link";
-import { verifyPhoneCode } from "@/app/actions";
+import OtpForm from "@/app/verify/OtpForm";
 
 type VerifyPageProps = {
   searchParams?: Promise<{
     phone?: string;
+    mode?: string;
     demoCode?: string;
     error?: string;
+    success?: string;
   }>;
 };
 
 export default async function VerifyPage({ searchParams }: VerifyPageProps) {
   const params = await searchParams;
   const phone = params?.phone ?? "";
+  const mode = params?.mode === "register" ? "register" : "login";
+  const backPath = mode === "register" ? "/register" : "/login";
+  const title = mode === "register" ? "Verify and create account" : "Verify login";
 
   return (
-    <main className="min-h-screen bg-[#f3f7ef] px-4 py-10 text-stone-950">
-      <section className="mx-auto max-w-md rounded-md border border-[#dcebc8] bg-white p-6 shadow-sm">
-        <Link href="/login" className="text-sm font-medium text-[#587b4b]">
-          Change phone number
+    <main className="min-h-screen overflow-hidden bg-[#f3f7ef] px-4 py-10 text-stone-950">
+      <section className="relative mx-auto max-w-md animate-[fadeIn_450ms_ease-out] rounded-md border border-[#dcebc8] bg-white p-6 shadow-sm">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-[#dcebc8]/70 blur-2xl" />
+        <Link href={backPath} className="text-sm font-medium text-[#587b4b]">
+          Change details
         </Link>
-        <h1 className="mt-4 text-3xl font-semibold">Verify phone</h1>
+        <h1 className="mt-4 text-3xl font-semibold">{title}</h1>
         <p className="mt-2 text-sm leading-6 text-stone-600">
-          Enter the six digit code for {phone || "your phone number"}.
+          Enter the six digit OTP code sent to {phone || "your phone number"}.
         </p>
 
         {params?.demoCode && (
           <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
             Demo verification code: <strong>{params.demoCode}</strong>
             <br />
-            Later this code should be sent by SMS instead of shown here.
+            This appears only when Twilio env variables are missing or demo mode is on.
           </div>
         )}
 
@@ -38,26 +44,13 @@ export default async function VerifyPage({ searchParams }: VerifyPageProps) {
           </p>
         )}
 
-        <form action={verifyPhoneCode} className="mt-6 grid gap-4">
-          <input type="hidden" name="phone" value={phone} />
-          <label className="flex flex-col gap-2 text-sm font-medium">
-            Verification code
-            <input
-              name="code"
-              inputMode="numeric"
-              required
-              minLength={6}
-              maxLength={6}
-              className="rounded-md border border-stone-300 px-3 py-2 font-normal tracking-[0.4em] outline-none focus:border-[#587b4b]"
-            />
-          </label>
-          <button
-            type="submit"
-            className="rounded-md bg-[#315c46] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#263f32]"
-          >
-            Verify and continue
-          </button>
-        </form>
+        {params?.success && (
+          <p className="mt-4 rounded-md bg-[#f3f7ef] p-3 text-sm text-[#315c46]">
+            {params.success}
+          </p>
+        )}
+
+        <OtpForm mode={mode} phone={phone} />
       </section>
     </main>
   );

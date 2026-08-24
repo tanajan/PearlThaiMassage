@@ -7,12 +7,15 @@ import {
   createSession,
   createVerificationCode,
   hashSecret,
+  hashPassword,
   isUserRole,
   normalizePhone,
   requireOwner,
+  verifyPassword,
 } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_SERVICE_COLOUR, isServiceColour } from "@/lib/serviceColours";
+import { sendOtpSms } from "@/lib/twilio";
 import {
   DAYS,
   assertBookingFitsStaffSchedule,
@@ -115,6 +118,85 @@ function parseBookingStatus(value: FormDataEntryValue | null) {
   throw new Error("Choose a valid booking status.");
 }
 
+function parseHomeMassageDetails(formData: FormData) {
+  const isHomeMassage = formData.get("isHomeMassage") === "on";
+  const location = cleanOptionalText(formData.get("location"));
+
+  if (isHomeMassage && !location) {
+    throw new Error("Home massage bookings need a location.");
+  }
+
+  return {
+    isHomeMassage,
+    location: isHomeMassage ? location : null,
+  };
+}
+
+function parseDob(value: FormDataEntryValue | null) {
+  const text = cleanText(value);
+  const dob = text ? new Date(`${text}T00:00:00`) : null;
+
+  if (!dob || Number.isNaN(dob.getTime()) || dob > new Date()) {
+    throw new Error("Choose a valid date of birth.");
+  }
+
+  return dob;
+}
+
+function validatePassword(password: string, confirmPassword?: string) {
+  if (password.length < 8) {
+    throw new Error("Password must be at least 8 characters long.");
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    throw new Error("Password must include at least 1 capital letter.");
+  }
+
+  if (!/[a-z]/.test(password)) {
+    throw new Error("Password must include at least 1 lowercase character.");
+  }
+
+  if (confirmPassword !== undefined && password !== confirmPassword) {
+    throw new Error("Password and confirm password do not match.");
+  }
+}
+
+async function createAndSendOtp({
+  phone,
+  purpose,
+  username,
+  passwordHash,
+  dob,
+}: {
+  phone: string;
+  purpose: "login" | "register";
+  username?: string;
+  passwordHash?: string;
+  dob?: Date;
+}) {
+  const code = createVerificationCode();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  await prisma.phoneVerificationCode.updateMany({
+    where: { phone, purpose, usedAt: null },
+    data: { usedAt: new Date() },
+  });
+
+  await prisma.phoneVerificationCode.create({
+    data: {
+      phone,
+      purpose,
+      codeHash: hashSecret(code),
+      username,
+      passwordHash,
+      dob,
+      expiresAt,
+    },
+  });
+
+  return sendOtpSms({ to: phone, code });
+}
+
 function ownerPhoneList() {
   return (process.env.OWNER_PHONE_NUMBERS ?? "")
     .split(",")
@@ -142,39 +224,136 @@ async function findMatchingStaffId(phone: string) {
   return match?.id ?? null;
 }
 
-export async function requestPhoneCode(formData: FormData) {
-  const phone = normalizePhone(cleanText(formData.get("phone")));
+function otpRedirectPath({
+  phone,
+  mode,
+  demoCode,
+}: {
+  phone: string;
+  mode: "login" | "register";
+  demoCode: string | null;
+}) {
+  const params = new URLSearchParams({ phone, mode });
 
-  if (phone.length < 8) {
-    redirectWithMessage("error", "Enter a valid phone number.", "/login");
+  if (demoCode) {
+    params.set("demoCode", demoCode);
   }
 
-  const code = createVerificationCode();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-  await prisma.phoneVerificationCode.create({
-    data: {
-      phone,
-      codeHash: hashSecret(code),
-      expiresAt,
-    },
-  });
-
-  // Demo mode: this code is shown on screen. Later this is where SMS sending plugs in.
-  redirect(
-    `/verify?phone=${encodeURIComponent(phone)}&demoCode=${encodeURIComponent(code)}`,
-  );
+  return `/verify?${params.toString()}`;
 }
 
-export async function verifyPhoneCode(formData: FormData) {
+function redirectForRole(role: string) {
+  if (role === "owner") {
+    return "/admin";
+  }
+
+  if (role === "staff") {
+    return "/staff-calendar";
+  }
+
+  return "/book";
+}
+
+export async function requestRegisterCode(formData: FormData) {
+  const username = cleanText(formData.get("username"));
+  const phone = normalizePhone(cleanText(formData.get("phone")));
+  const password = cleanText(formData.get("password"));
+  const confirmPassword = cleanText(formData.get("confirmPassword"));
+  let verificationRedirect = "";
+  let existingAccountRedirect = "";
+
+  try {
+    if (!username) {
+      throw new Error("Username is required.");
+    }
+
+    if (phone.length < 8 || !phone.startsWith("+")) {
+      throw new Error("Enter a valid UK phone number, for example 07356 259149.");
+    }
+
+    validatePassword(password, confirmPassword);
+
+    const existingUser = await prisma.user.findUnique({ where: { phone } });
+
+    if (existingUser?.passwordHash) {
+      existingAccountRedirect = `/login?phone=${encodeURIComponent(phone)}&error=${encodeURIComponent(
+        "This phone number already has an account. Please log in instead.",
+      )}`;
+    } else {
+      const result = await createAndSendOtp({
+        phone,
+        purpose: "register",
+        username,
+        passwordHash: hashPassword(password),
+        dob: parseDob(formData.get("dob")),
+      });
+
+      verificationRedirect = otpRedirectPath({
+        phone,
+        mode: "register",
+        demoCode: result.demoCode,
+      });
+    }
+  } catch (error) {
+    redirectWithMessage(
+      "error",
+      error instanceof Error ? error.message : "Could not start registration.",
+      "/register",
+    );
+  }
+
+  if (existingAccountRedirect) {
+    redirect(existingAccountRedirect);
+  }
+
+  redirect(verificationRedirect);
+}
+
+export async function requestLoginCode(formData: FormData) {
+  const phone = normalizePhone(cleanText(formData.get("phone")));
+  const password = cleanText(formData.get("password"));
+  let verificationRedirect = "";
+
+  try {
+    if (phone.length < 8) {
+      throw new Error("Enter a valid phone number.");
+    }
+
+    const user = await prisma.user.findUnique({ where: { phone } });
+
+    if (!user || !verifyPassword(password, user.passwordHash)) {
+      throw new Error("Phone number or password is incorrect.");
+    }
+
+    const result = await createAndSendOtp({ phone, purpose: "login" });
+
+    verificationRedirect = otpRedirectPath({
+      phone,
+      mode: "login",
+      demoCode: result.demoCode,
+    });
+  } catch (error) {
+    redirectWithMessage(
+      "error",
+      error instanceof Error ? error.message : "Could not send verification code.",
+      "/login",
+    );
+  }
+
+  redirect(verificationRedirect);
+}
+
+export async function verifyOtpCode(formData: FormData) {
   const phone = normalizePhone(cleanText(formData.get("phone")));
   const code = cleanText(formData.get("code"));
+  const mode = cleanText(formData.get("mode")) === "register" ? "register" : "login";
   let destination = "/book";
 
   try {
     const verification = await prisma.phoneVerificationCode.findFirst({
       where: {
         phone,
+        purpose: mode,
         codeHash: hashSecret(code),
         usedAt: null,
         expiresAt: { gt: new Date() },
@@ -186,37 +365,141 @@ export async function verifyPhoneCode(formData: FormData) {
       throw new Error("That verification code is invalid or expired.");
     }
 
-    await prisma.phoneVerificationCode.update({
-      where: { id: verification.id },
-      data: { usedAt: new Date() },
-    });
+    const user =
+      mode === "register"
+        ? await prisma.$transaction(async (tx) => {
+            const existingUser = await tx.user.findUnique({ where: { phone } });
 
-    const existingUser = await prisma.user.findUnique({ where: { phone } });
-    const role = existingUser?.role ?? (await roleForVerifiedPhone(phone));
-    const staffId = existingUser?.staffId ?? (await findMatchingStaffId(phone));
-    const user = await prisma.user.upsert({
-      where: { phone },
-      update: { staffId },
-      create: { phone, role, staffId },
-    });
+            if (existingUser?.passwordHash) {
+              throw new Error("This phone number already has an account. Please log in instead.");
+            }
+
+            const role = existingUser?.role ?? (await roleForVerifiedPhone(phone));
+            const staffId = existingUser?.staffId ?? (await findMatchingStaffId(phone));
+
+            await tx.phoneVerificationCode.update({
+              where: { id: verification.id },
+              data: { usedAt: new Date() },
+            });
+
+            if (existingUser) {
+              return tx.user.update({
+                where: { id: existingUser.id },
+                data: {
+                  name: existingUser.name ?? verification.username,
+                  username: verification.username,
+                  passwordHash: verification.passwordHash,
+                  dob: verification.dob,
+                  staffId,
+                },
+              });
+            }
+
+            return tx.user.create({
+              data: {
+                phone,
+                name: verification.username,
+                username: verification.username,
+                passwordHash: verification.passwordHash,
+                dob: verification.dob,
+                role,
+                staffId,
+              },
+            });
+          })
+        : await prisma.$transaction(async (tx) => {
+            const existingUser = await tx.user.findUnique({ where: { phone } });
+
+            if (!existingUser) {
+              throw new Error("Create an account before logging in.");
+            }
+
+            await tx.phoneVerificationCode.update({
+              where: { id: verification.id },
+              data: { usedAt: new Date() },
+            });
+
+            return existingUser;
+          });
 
     await createSession(user.id);
-
-    if (user.role === "owner") {
-      destination = "/admin";
-    } else if (user.role === "staff") {
-      destination = "/staff-calendar";
-    }
+    destination = redirectForRole(user.role);
   } catch (error) {
     redirectWithMessage(
       "error",
       error instanceof Error ? error.message : "Could not verify phone.",
-      `/verify?phone=${encodeURIComponent(phone)}`,
+      `/verify?phone=${encodeURIComponent(phone)}&mode=${mode}`,
     );
   }
 
   redirect(destination);
 }
+
+export async function resendOtpCode(formData: FormData) {
+  const phone = normalizePhone(cleanText(formData.get("phone")));
+  const mode = cleanText(formData.get("mode")) === "register" ? "register" : "login";
+  const verifyPath = `/verify?phone=${encodeURIComponent(phone)}&mode=${mode}`;
+  let destination = "";
+
+  try {
+    const latestVerification = await prisma.phoneVerificationCode.findFirst({
+      where: {
+        phone,
+        purpose: mode,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!latestVerification) {
+      throw new Error(
+        mode === "register"
+          ? "Please start registration again before requesting a new OTP."
+          : "Please log in again before requesting a new OTP.",
+      );
+    }
+
+    const resendAvailableAt = latestVerification.createdAt.getTime() + 5 * 60 * 1000;
+
+    if (Date.now() < resendAvailableAt) {
+      const seconds = Math.ceil((resendAvailableAt - Date.now()) / 1000);
+      const minutes = Math.ceil(seconds / 60);
+      throw new Error(`Please wait about ${minutes} minute${minutes === 1 ? "" : "s"} before resending.`);
+    }
+
+    const result = await createAndSendOtp({
+      phone,
+      purpose: mode,
+      username: latestVerification.username ?? undefined,
+      passwordHash: latestVerification.passwordHash ?? undefined,
+      dob: latestVerification.dob ?? undefined,
+    });
+
+    const params = new URLSearchParams({
+      phone,
+      mode,
+      success: "A new OTP has been sent.",
+    });
+
+    if (result.demoCode) {
+      params.set("demoCode", result.demoCode);
+    }
+
+    destination = `/verify?${params.toString()}`;
+  } catch (error) {
+    redirectWithMessage(
+      "error",
+      error instanceof Error ? error.message : "Could not resend OTP.",
+      verifyPath,
+    );
+  }
+
+  redirect(destination);
+}
+
+export const requestPhoneCode = requestLoginCode;
+export const verifyPhoneCode = verifyOtpCode;
 
 export async function logout() {
   await clearSession();
@@ -718,6 +1001,7 @@ export async function createBooking(formData: FormData) {
     const staffId = toPositiveInteger(formData.get("staffId"), "Staff");
     const serviceId = toPositiveInteger(formData.get("serviceId"), "Service");
     const startTime = parseDateAndHalfHour(formData);
+    const homeMassage = parseHomeMassageDetails(formData);
 
     if (!customer) {
       throw new Error("Customer name is required.");
@@ -764,6 +1048,8 @@ export async function createBooking(formData: FormData) {
         startTime,
         endTime,
         status: "coming",
+        isHomeMassage: homeMassage.isHomeMassage,
+        location: homeMassage.location,
       },
     });
   } catch (error) {
@@ -781,12 +1067,14 @@ export async function createBooking(formData: FormData) {
 export async function createCustomerBooking(formData: FormData) {
   const user = await import("@/lib/auth").then((mod) => mod.requireUser());
   const redirectTo = safeRedirectPath(formData.get("redirectTo"));
+  let bookingId: number | null = null;
 
   try {
     const customer = cleanText(formData.get("customer"));
     const staffId = toPositiveInteger(formData.get("staffId"), "Staff");
     const serviceId = toPositiveInteger(formData.get("serviceId"), "Service");
     const startTime = parseDateAndHalfHour(formData);
+    const homeMassage = parseHomeMassageDetails(formData);
 
     if (!customer) {
       throw new Error("Your name is required.");
@@ -819,12 +1107,13 @@ export async function createCustomerBooking(formData: FormData) {
       duration: service.duration,
     });
 
-    await prisma.$transaction([
-      prisma.user.update({
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.user.update({
         where: { id: user.id },
         data: { name: customer },
-      }),
-      prisma.booking.create({
+      });
+
+      return tx.booking.create({
         data: {
           customer,
           phone: user.phone,
@@ -834,9 +1123,13 @@ export async function createCustomerBooking(formData: FormData) {
           startTime,
           endTime,
           status: "coming",
+          isHomeMassage: homeMassage.isHomeMassage,
+          location: homeMassage.location,
         },
-      }),
-    ]);
+      });
+    });
+
+    bookingId = result.id;
   } catch (error) {
     redirectWithMessage(
       "error",
@@ -849,7 +1142,7 @@ export async function createCustomerBooking(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin-hours");
   revalidatePath("/staff-calendar");
-  redirectWithMessage("success", "Booking created.", redirectTo);
+  redirect(bookingId ? `/booking-confirmation/${bookingId}` : redirectTo);
 }
 
 export async function updateBooking(formData: FormData) {
@@ -861,6 +1154,7 @@ export async function updateBooking(formData: FormData) {
     const staffId = toPositiveInteger(formData.get("staffId"), "Staff");
     const serviceId = toPositiveInteger(formData.get("serviceId"), "Service");
     const startTime = parseDateAndHalfHour(formData);
+    const homeMassage = parseHomeMassageDetails(formData);
 
     if (!customer) {
       throw new Error("Customer name is required.");
@@ -904,6 +1198,8 @@ export async function updateBooking(formData: FormData) {
         serviceId,
         startTime,
         endTime,
+        isHomeMassage: homeMassage.isHomeMassage,
+        location: homeMassage.location,
       },
     });
   } catch (error) {

@@ -33,6 +33,8 @@ type BookingItem = {
   servicePrice: number;
   startTime: string;
   endTime: string;
+  isHomeMassage: boolean;
+  location: string | null;
 };
 
 type DraftBooking = {
@@ -270,6 +272,7 @@ export function AdminHoursBoard({
                         {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
                       </div>
                       <div>{booking.serviceDuration} min</div>
+                      {booking.isHomeMassage && <div>Home massage</div>}
                       {booking.note && (
                         <div className="mt-1 truncate text-stone-600">{booking.note}</div>
                       )}
@@ -427,6 +430,32 @@ export function AdminHoursBoard({
                   </>
                 );
               })()}
+
+              <label className="flex flex-col gap-2 text-sm font-medium sm:col-span-2">
+                Home massage
+                <span className="flex items-center gap-2 rounded-md border border-stone-200 bg-stone-50 px-3 py-2 font-normal">
+                  <input
+                    name="isHomeMassage"
+                    type="checkbox"
+                    defaultChecked={
+                      modal.mode === "edit" ? modal.booking.isHomeMassage : false
+                    }
+                    className="h-4 w-4 rounded border-stone-300"
+                  />
+                  Customer wants this as a home massage
+                </span>
+              </label>
+
+              <label className="flex flex-col gap-2 text-sm font-medium sm:col-span-2">
+                Home massage location
+                <textarea
+                  name="location"
+                  rows={2}
+                  defaultValue={modal.mode === "edit" ? modal.booking.location ?? "" : ""}
+                  className="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-amber-700"
+                  placeholder="Required if home massage is ticked"
+                />
+              </label>
 
               <label className="flex flex-col gap-2 text-sm font-medium sm:col-span-2">
                 Note

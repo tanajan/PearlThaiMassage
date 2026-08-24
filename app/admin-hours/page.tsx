@@ -85,6 +85,8 @@ export default async function AdminHours({ searchParams }: AdminHoursProps) {
       servicePrice: booking.service.price,
       startTime: booking.startTime.toISOString(),
       endTime: booking.endTime.toISOString(),
+      isHomeMassage: booking.isHomeMassage,
+      location: booking.location,
     })),
   }));
 

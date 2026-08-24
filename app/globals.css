@@ -86,11 +86,24 @@ body {
   }
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .flash-backdrop,
   .flash-backdrop-out,
   .flash-modal,
-  .flash-modal-out {
+  .flash-modal-out,
+  [class*="animate-"] {
     animation-duration: 1ms;
   }
 }

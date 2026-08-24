@@ -50,6 +50,12 @@ const services = [
       "A relaxing treatment for tired feet and lower legs, helping improve comfort after standing, walking, or long days.",
     prices: standardPrices,
   },
+  {
+    title: "Home Massage",
+    description:
+      "Enjoy a massage at your own location. Choose this option when booking and provide the address so the team can arrange the visit.",
+    prices: standardPrices,
+  },
 ];
 
 export default function ServicesPage() {

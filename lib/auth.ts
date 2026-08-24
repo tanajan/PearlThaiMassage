@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomInt } from "crypto";
+import { createHash, pbkdf2Sync, randomBytes, randomInt, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -15,7 +15,17 @@ export function normalizePhone(phone: string) {
     return `+${trimmed.slice(1).replace(/\D/g, "")}`;
   }
 
-  return trimmed.replace(/\D/g, "");
+  const digits = trimmed.replace(/\D/g, "");
+
+  if (digits.startsWith("0")) {
+    return `+44${digits.slice(1)}`;
+  }
+
+  if (digits.startsWith("44")) {
+    return `+${digits}`;
+  }
+
+  return digits;
 }
 
 export function isUserRole(value: string): value is UserRole {
@@ -28,6 +38,39 @@ export function hashSecret(value: string) {
 
 export function createVerificationCode() {
   return String(randomInt(100000, 1000000));
+}
+
+export function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  const hash = pbkdf2Sync(password, salt, 210000, 32, "sha256").toString("hex");
+
+  return `pbkdf2_sha256$210000$${salt}$${hash}`;
+}
+
+export function verifyPassword(password: string, storedHash: string | null | undefined) {
+  if (!storedHash) {
+    return false;
+  }
+
+  const [scheme, iterationsValue, salt, expectedHash] = storedHash.split("$");
+
+  if (scheme !== "pbkdf2_sha256" || !iterationsValue || !salt || !expectedHash) {
+    return false;
+  }
+
+  const iterations = Number(iterationsValue);
+
+  if (!Number.isInteger(iterations) || iterations <= 0) {
+    return false;
+  }
+
+  const actual = Buffer.from(
+    pbkdf2Sync(password, salt, iterations, 32, "sha256").toString("hex"),
+    "hex",
+  );
+  const expected = Buffer.from(expectedHash, "hex");
+
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
 export async function createSession(userId: number) {

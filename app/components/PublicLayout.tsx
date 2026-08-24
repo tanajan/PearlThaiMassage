@@ -37,12 +37,6 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                 </Link>
               ))}
               <Link
-                href="/admin"
-                className="rounded-full bg-white/10 px-4 py-2 text-white ring-1 ring-white/30 transition hover:bg-white hover:text-[#263f32]"
-              >
-                Admin
-              </Link>
-              <Link
                 href="/book"
                 className="rounded-full bg-[#7fa66a] px-4 py-2 text-white transition hover:bg-[#dcebc8] hover:text-[#263f32]"
               >
@@ -64,9 +58,6 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                     {item.label}
                   </Link>
                 ))}
-                <Link href="/admin" className="rounded-md px-3 py-2 hover:bg-[#f3f7ef]">
-                  Admin
-                </Link>
                 <Link
                   href="/book"
                   className="rounded-md bg-[#7fa66a] px-3 py-2 text-white hover:bg-[#315c46]"

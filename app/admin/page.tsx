@@ -451,6 +451,26 @@ export default async function Home({ searchParams }: HomeProps) {
                       </div>
                     </label>
                     <label className="flex flex-col gap-2 text-sm font-medium sm:col-span-2">
+                      Home massage
+                      <span className="flex items-center gap-2 rounded-md border border-stone-200 bg-stone-50 px-3 py-2 font-normal">
+                        <input
+                          name="isHomeMassage"
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-stone-300"
+                        />
+                        Customer wants this as a home massage
+                      </span>
+                    </label>
+                    <label className="flex flex-col gap-2 text-sm font-medium sm:col-span-2">
+                      Home massage location
+                      <textarea
+                        name="location"
+                        rows={2}
+                        className="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-amber-700"
+                        placeholder="Required if home massage is ticked"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-2 text-sm font-medium sm:col-span-2">
                       Note
                       <textarea
                         name="note"
@@ -514,6 +534,12 @@ export default async function Home({ searchParams }: HomeProps) {
                           <p className="mt-1 text-sm text-stone-600">
                             Service: {booking.service.name}
                           </p>
+                          {booking.isHomeMassage && (
+                            <p className="mt-1 text-sm text-stone-600">
+                              Home massage:{" "}
+                              <strong>{booking.location ?? "Location missing"}</strong>
+                            </p>
+                          )}
                           <form
                             action={updateBookingStatus}
                             className="mt-3 flex flex-wrap items-end gap-2"
@@ -600,6 +626,11 @@ export default async function Home({ searchParams }: HomeProps) {
                               </td>
                               <td className="px-3 py-3 text-stone-600">
                                 {booking.service.name}
+                                {booking.isHomeMassage && (
+                                  <div className="text-xs text-stone-500">
+                                    Home: {booking.location ?? "Location missing"}
+                                  </div>
+                                )}
                               </td>
                               <td className="px-3 py-3">
                                 <span

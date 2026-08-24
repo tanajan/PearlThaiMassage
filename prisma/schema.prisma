@@ -52,6 +52,8 @@ model Booking {
 
   status      String   @default("confirmed")
   note        String?
+  isHomeMassage Boolean @default(false)
+  location    String?
 
   createdAt   DateTime @default(now())
 }
@@ -92,6 +94,9 @@ model User {
   id        Int       @id @default(autoincrement())
   phone     String    @unique
   name      String?
+  username  String?
+  passwordHash String?
+  dob       DateTime?
   role      String    @default("customer")
   staffId   Int?
   staff     Staff?    @relation(fields: [staffId], references: [id])
@@ -112,7 +117,11 @@ model Session {
 model PhoneVerificationCode {
   id        Int      @id @default(autoincrement())
   phone     String
+  purpose   String   @default("login")
   codeHash  String
+  username  String?
+  passwordHash String?
+  dob       DateTime?
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime @default(now())

@@ -338,6 +338,11 @@ export default async function StaffCalendar({ searchParams }: StaffCalendarProps
                             {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
                           </div>
                           <div>{booking.service.duration} min</div>
+                          {booking.isHomeMassage && (
+                            <div className="mt-1 truncate text-stone-600">
+                              Home: {booking.location ?? "Location missing"}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
