@@ -87,7 +87,7 @@ export default function RegisterForm() {
           />
           <div
             className={`absolute left-0 top-full z-10 mt-2 w-full rounded-md border border-[#dcebc8] bg-white p-3 text-xs shadow-lg transition duration-200 sm:w-72 ${
-              showPasswordHelp || password
+              showPasswordHelp
                 ? "translate-y-0 opacity-100"
                 : "pointer-events-none -translate-y-1 opacity-0"
             }`}

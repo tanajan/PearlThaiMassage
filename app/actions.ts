@@ -254,6 +254,10 @@ function redirectForRole(role: string) {
   return "/book";
 }
 
+function normalizeAdminLogin(value: string) {
+  return value.trim().toLowerCase();
+}
+
 export async function requestRegisterCode(formData: FormData) {
   const username = cleanText(formData.get("username"));
   const phone = normalizePhone(cleanText(formData.get("phone")));
@@ -310,34 +314,50 @@ export async function requestRegisterCode(formData: FormData) {
 }
 
 export async function requestLoginCode(formData: FormData) {
-  const phone = normalizePhone(cleanText(formData.get("phone")));
+  const login = cleanText(formData.get("phone"));
+  const adminLogin = normalizeAdminLogin(login);
+  const phone = normalizePhone(login);
   const password = cleanText(formData.get("password"));
   let verificationRedirect = "";
+  let adminRedirect = "";
 
   try {
-    if (phone.length < 8) {
+    if (adminLogin === "pearlthaiadmin") {
+      const admin = await prisma.user.findUnique({ where: { phone: adminLogin } });
+
+      if (!admin || admin.role !== "owner" || !verifyPassword(password, admin.passwordHash)) {
+        throw new Error("Admin username or password is incorrect.");
+      }
+
+      await createSession(admin.id);
+      adminRedirect = "/admin";
+    } else if (phone.length < 8) {
       throw new Error("Enter a valid phone number.");
+    } else {
+      const user = await prisma.user.findUnique({ where: { phone } });
+
+      if (!user || !verifyPassword(password, user.passwordHash)) {
+        throw new Error("Phone number or password is incorrect.");
+      }
+
+      const result = await createAndSendOtp({ phone, purpose: "login" });
+
+      verificationRedirect = otpRedirectPath({
+        phone,
+        mode: "login",
+        demoCode: result.demoCode,
+      });
     }
-
-    const user = await prisma.user.findUnique({ where: { phone } });
-
-    if (!user || !verifyPassword(password, user.passwordHash)) {
-      throw new Error("Phone number or password is incorrect.");
-    }
-
-    const result = await createAndSendOtp({ phone, purpose: "login" });
-
-    verificationRedirect = otpRedirectPath({
-      phone,
-      mode: "login",
-      demoCode: result.demoCode,
-    });
   } catch (error) {
     redirectWithMessage(
       "error",
       error instanceof Error ? error.message : "Could not send verification code.",
       "/login",
     );
+  }
+
+  if (adminRedirect) {
+    redirect(adminRedirect);
   }
 
   redirect(verificationRedirect);

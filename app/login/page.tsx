@@ -35,8 +35,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </Link>
         <h1 className="mt-4 text-3xl font-semibold">Welcome back</h1>
         <p className="mt-2 text-sm leading-6 text-stone-600">
-          Log in with your phone and password. We will text a short OTP code before
-          opening your account.
+          Customers and staff log in with phone OTP. Owners can use the admin
+          username and password.
         </p>
 
         {params?.error && (
@@ -47,13 +47,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         <form action={requestLoginCode} className="mt-6 grid gap-4">
           <label className="flex flex-col gap-2 text-sm font-medium">
-            Phone number
+            Phone number or admin username
             <input
               name="phone"
-              type="tel"
+              type="text"
               required
               defaultValue={phone}
-              placeholder="+44..."
+              placeholder="+44... or pearlthaiadmin"
               className="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
             />
           </label>
@@ -71,7 +71,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             type="submit"
             className="rounded-md bg-[#315c46] px-4 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#263f32]"
           >
-            Send OTP and log in
+            Continue
           </button>
         </form>
         <p className="mt-5 text-center text-sm text-stone-600">

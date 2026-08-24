@@ -15,18 +15,21 @@ const sportPrices = [
 const services = [
   {
     title: "Thai Massage",
+    image: "/images/service1.jpg",
     description:
       "Traditional Thai massage using firm pressure, assisted stretching, and rhythmic movements to ease tension and improve flexibility.",
     prices: standardPrices,
   },
   {
     title: "Thai Massage Mix Oil Massage",
+    image: "/images/service2.jpg",
     description:
       "A balanced treatment combining Thai massage techniques with oil massage for deep relief while keeping the session smooth and relaxing.",
     prices: standardPrices,
   },
   {
     title: "Aroma Massage",
+    image: "/images/service3.jpg",
     subtitle: "Soft and relaxing massage",
     description:
       "A gentle, calming massage using flowing movements to help relax the body, reduce stress, and create a peaceful feeling.",
@@ -34,24 +37,28 @@ const services = [
   },
   {
     title: "Sport Massage",
+    image: "/images/service4.jpg",
     description:
       "A focused massage for active bodies, tight muscles, and recovery support, using stronger pressure where needed.",
     prices: sportPrices,
   },
   {
     title: "Back and Shoulder Massage",
+    image: "/images/service5.jpg",
     description:
       "Targeted massage for the back, neck, and shoulders to help release common tension from work, posture, and daily stress.",
     prices: standardPrices,
   },
   {
     title: "Foot Massage",
+    image: "/images/service6.jpg",
     description:
       "A relaxing treatment for tired feet and lower legs, helping improve comfort after standing, walking, or long days.",
     prices: standardPrices,
   },
   {
     title: "Home Massage",
+    image: "/images/service7.jpg",
     description:
       "Enjoy a massage at your own location. Choose this option when booking and provide the address so the team can arrange the visit.",
     prices: standardPrices,
@@ -78,14 +85,11 @@ export default function ServicesPage() {
                 index % 2 === 1 ? "lg:[&>div:first-child]:order-2" : ""
               }`}
             >
-              <div className="flex min-h-56 items-center justify-center bg-[#e7efe0] p-6 text-center sm:min-h-72">
-                <div>
-                  <div className="mx-auto h-16 w-16 rounded-full border border-[#b7cf9f] bg-[#f3f7ef]" />
-                  <p className="mt-4 text-sm font-medium text-[#587b4b]">
-                    Service photo coming soon
-                  </p>
-                </div>
-              </div>
+              <img
+                src={service.image}
+                alt={service.title}
+                className="min-h-56 w-full bg-[#e7efe0] object-cover sm:min-h-72 lg:h-full"
+              />
 
               <div className="flex flex-col justify-center p-5 sm:p-8">
                 <div className="text-center lg:text-left">
