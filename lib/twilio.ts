@@ -1,3 +1,7 @@
+function cleanEnvValue(value: string | undefined) {
+  return value?.trim().replace(/^["']|["']$/g, "");
+}
+
 export async function sendOtpSms({
   to,
   code,
@@ -5,10 +9,10 @@ export async function sendOtpSms({
   to: string;
   code: string;
 }) {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_FROM_NUMBER;
-  const demoMode = process.env.TWILIO_DEMO_MODE === "true";
+  const accountSid = cleanEnvValue(process.env.TWILIO_ACCOUNT_SID);
+  const authToken = cleanEnvValue(process.env.TWILIO_AUTH_TOKEN);
+  const from = cleanEnvValue(process.env.TWILIO_FROM_NUMBER);
+  const demoMode = cleanEnvValue(process.env.TWILIO_DEMO_MODE) === "true";
 
   if (!accountSid || !authToken || !from || demoMode) {
     console.log(`Demo OTP for ${to}: ${code}`);
@@ -41,7 +45,10 @@ export async function sendOtpSms({
     try {
       const parsed = JSON.parse(detail) as { code?: number; message?: string };
 
-      if (parsed.code === 20003 && parsed.message?.includes("Trial account")) {
+      if (parsed.code === 20003 && parsed.message?.includes("invalid username")) {
+        message =
+          "Twilio authentication failed. Check that TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in Vercel are copied from the same Twilio account, then redeploy.";
+      } else if (parsed.code === 20003 && parsed.message?.includes("Trial account")) {
         message =
           "Twilio trial accounts cannot send this OTP right now. Verify the recipient number in Twilio, or upgrade the Twilio account for live customer SMS.";
       } else if (parsed.message) {
