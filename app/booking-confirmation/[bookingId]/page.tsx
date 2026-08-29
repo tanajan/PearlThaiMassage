@@ -70,7 +70,7 @@ export default async function BookingConfirmationPage({
   );
   const location = booking.isHomeMassage
     ? booking.location || "Home massage location"
-    : "38A Meriden Street, Birmingham B5 5LS";
+    : "2 Whitehill Road Cambridge CB5 8LT";
   const calendarUrl = googleCalendarUrl({
     endTime: booking.endTime,
     location,

@@ -1,15 +1,28 @@
 import { PublicLayout } from "@/app/components/PublicLayout";
+import ServicesList from "@/app/services/ServicesList";
 
 const standardPrices = [
   { duration: "60 min", price: "£60" },
-  { duration: "90 min", price: "£85" },
-  { duration: "120 min", price: "£110" },
+  { duration: "90 min", price: "£90" },
+  { duration: "120 min", price: "£120" },
 ];
 
 const sportPrices = [
-  { duration: "60 min", price: "£65" },
-  { duration: "90 min", price: "£95" },
-  { duration: "120 min", price: "£125" },
+  { duration: "60 min", price: "£70" },
+  { duration: "90 min", price: "£90" },
+  { duration: "120 min", price: "£120" },
+];
+
+const singleSixtyFivePrice = [{ duration: "60 min", price: "£65" }];
+
+const hotStonePrices = [{ duration: "60 min", price: "£60" }];
+
+const waxingPrices = [
+  { duration: "Full Arms Waxing - 10 min", price: "£20" },
+  { duration: "Hollywood Waxing - 15 min", price: "£45" },
+  { duration: "Brazilian Waxing - 15 min", price: "£40" },
+  { duration: "Underarm Waxing - 15 min", price: "£20" },
+  { duration: "Bikini Line Waxing - 15 min", price: "£40" },
 ];
 
 const services = [
@@ -63,6 +76,30 @@ const services = [
       "Enjoy a massage at your own location. Choose this option when booking and provide the address so the team can arrange the visit.",
     prices: standardPrices,
   },
+  {
+    title: "Pregnancy Massage",
+    description:
+      "A gentle, supportive massage designed for comfort during pregnancy, helping ease tension and encourage relaxation.",
+    prices: singleSixtyFivePrice,
+  },
+  {
+    title: "Lymphatic Massage",
+    description:
+      "A light, rhythmic treatment that supports relaxation and encourages healthy lymphatic flow.",
+    prices: singleSixtyFivePrice,
+  },
+  {
+    title: "Hot Stone Massage",
+    description:
+      "A warming massage using smooth heated stones to soften muscle tension and create deep relaxation.",
+    prices: hotStonePrices,
+  },
+  {
+    title: "Waxing",
+    description:
+      "A selection of professional waxing treatments, including arms, underarms, bikini line, Brazilian, and Hollywood waxing.",
+    prices: waxingPrices,
+  },
 ];
 
 export default function ServicesPage() {
@@ -73,58 +110,11 @@ export default function ServicesPage() {
           <h1 className="text-3xl font-semibold sm:text-4xl">Services</h1>
           <p className="mx-auto mt-3 max-w-2xl text-stone-600">
             Choose from traditional Thai massage, relaxing oil treatments, sports
-            massage, and focused back, shoulder, or foot treatments.
+            massage, specialist treatments, and waxing services.
           </p>
         </div>
 
-        <div className="mt-8 grid gap-6 sm:mt-10 lg:gap-8">
-          {services.map((service, index) => (
-            <article
-              key={service.title}
-              className={`grid overflow-hidden rounded-md bg-white shadow-sm lg:grid-cols-[minmax(260px,0.75fr)_minmax(0,1.25fr)] ${
-                index % 2 === 1 ? "lg:[&>div:first-child]:order-2" : ""
-              }`}
-            >
-              <img
-                src={service.image}
-                alt={service.title}
-                className="min-h-56 w-full bg-[#e7efe0] object-cover sm:min-h-72 lg:h-full"
-              />
-
-              <div className="flex flex-col justify-center p-5 sm:p-8">
-                <div className="text-center lg:text-left">
-                  <h2 className="text-xl font-semibold sm:text-2xl">
-                    {service.title}
-                  </h2>
-                  {service.subtitle && (
-                    <p className="mt-1 text-sm font-medium text-[#587b4b]">
-                      {service.subtitle}
-                    </p>
-                  )}
-                  <p className="mt-4 leading-7 text-stone-600">
-                    {service.description}
-                  </p>
-                </div>
-
-                <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                  {service.prices.map((price) => (
-                    <div
-                      key={`${service.title}-${price.duration}`}
-                      className="rounded-md border border-[#dcebc8] bg-[#f3f7ef] p-4 text-center"
-                    >
-                      <div className="text-sm font-medium text-stone-600">
-                        {price.duration}
-                      </div>
-                      <div className="mt-1 text-2xl font-semibold text-[#315c46]">
-                        {price.price}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+        <ServicesList services={services} />
       </section>
     </PublicLayout>
   );

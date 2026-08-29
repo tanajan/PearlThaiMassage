@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
-export const SLOT_DURATIONS = [60, 90, 120] as const;
+export const SLOT_DURATIONS = [10, 15, 60, 90, 120] as const;
 export const BOOKING_START_HOURS = Array.from({ length: 10 }, (_, index) => index + 10);
 export const WORK_END_HOURS = Array.from({ length: 11 }, (_, index) => index + 10);
 export const SLOT_MINUTES = ["00", "30"] as const;

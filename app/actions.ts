@@ -803,7 +803,7 @@ export async function createService(formData: FormData) {
     const price = parsePrice(formData.get("price"));
 
     if (!isSlotDuration(duration)) {
-      throw new Error("Services must be 60, 90, or 120 minutes long.");
+      throw new Error("Services must be 10, 15, 60, 90, or 120 minutes long.");
     }
 
     const group = await prisma.serviceGroup.findUnique({ where: { id: groupId } });
@@ -843,7 +843,7 @@ export async function updateService(formData: FormData) {
     const price = parsePrice(formData.get("price"));
 
     if (!isSlotDuration(duration)) {
-      throw new Error("Services must be 60, 90, or 120 minutes long.");
+      throw new Error("Services must be 10, 15, 60, 90, or 120 minutes long.");
     }
 
     const service = await prisma.service.findUnique({
@@ -1045,7 +1045,7 @@ export async function createBooking(formData: FormData) {
     }
 
     if (!isSlotDuration(service.duration)) {
-      throw new Error("Bookings must use a 60, 90, or 120 minute service.");
+      throw new Error("Bookings must use a valid service duration.");
     }
 
     if (service.group.staffServiceGroups.length === 0) {

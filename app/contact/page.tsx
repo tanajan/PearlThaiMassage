@@ -33,19 +33,19 @@ export default async function ContactPage() {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-stone-950">Phone</h2>
-              <p className="mt-2">+44 7472 908714</p>
+              <p className="mt-2">+44 7383 859645</p>
             </div>
           </div>
 
           <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
             <Link
-              href="/book"
+              href="/login"
               className="rounded-full bg-[#315c46] px-5 py-3 text-center text-sm font-semibold text-white hover:bg-[#263f32]"
             >
               Book an Appointment
             </Link>
             <a
-              href="https://wa.me/447472908714"
+              href="https://wa.me/447383859645"
               target="_blank"
               rel="noreferrer"
               className="rounded-full border border-[#7fa66a] bg-[#dcebc8] px-5 py-3 text-center text-sm font-semibold text-[#263f32] hover:bg-[#c6dfac]"

@@ -52,7 +52,7 @@ export default async function PublicHome() {
           </p>
           <div className="mt-8 grid w-full max-w-xs gap-3 sm:flex sm:max-w-none sm:flex-wrap sm:justify-center">
             <Link
-              href="/book"
+              href="/login"
               className="rounded-full bg-[#7fa66a] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#dcebc8] hover:text-[#263f32]"
             >
               Book Now
@@ -79,7 +79,7 @@ export default async function PublicHome() {
           <h2 className="text-2xl font-semibold text-[#587b4b] sm:text-3xl">About Us</h2>
           <p className="mt-4 leading-8 text-stone-700">
             Pearl Thai Massage is dedicated to bringing the authentic experience of
-            traditional Thai massage to Birmingham. Our skilled therapists combine
+            traditional Thai massage to every customer. Our skilled therapists combine
             acupressure, stretching, and deep tissue work to promote relaxation,
             relieve tension, and support your wellbeing.
           </p>
@@ -141,7 +141,7 @@ export default async function PublicHome() {
             </div>
             <div>
               <h3 className="font-semibold text-stone-950">Phone</h3>
-              <p className="mt-1">+44 7472 908714</p>
+              <p className="mt-1">+44 7383 859645</p>
             </div>
           </div>
           <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">

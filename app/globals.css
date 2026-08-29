@@ -12,17 +12,23 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
-  background: var(--background);
+  background: #f3f7ef;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
 }
 
 .flash-backdrop {
@@ -40,6 +46,27 @@ body {
 
 .flash-modal-out {
   animation: flash-modal-out 180ms ease-in both;
+}
+
+.service-scroll-fade {
+  opacity: 0;
+  transition:
+    opacity 1100ms ease,
+    transform 1100ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.service-from-left {
+  transform: translateX(-42px);
+}
+
+.service-from-right {
+  transform: translateX(42px);
+}
+
+.service-scroll-visible {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 @keyframes flash-backdrop-in {
@@ -105,5 +132,11 @@ body {
   .flash-modal-out,
   [class*="animate-"] {
     animation-duration: 1ms;
+  }
+
+  .service-scroll-fade {
+    opacity: 1;
+    transform: none;
+    transition-duration: 1ms;
   }
 }

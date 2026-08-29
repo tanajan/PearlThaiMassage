@@ -81,9 +81,9 @@ export default async function BookPage({ searchParams }: BookPageProps) {
   const services = serviceGroups.flatMap((group) => group.services);
 
   return (
-    <main className="min-h-screen bg-[#f3f7ef] px-4 py-10 text-stone-950">
-      <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <section className="rounded-md border border-[#dcebc8] bg-white p-6 shadow-sm">
+    <main className="min-h-screen overflow-x-hidden bg-[#f3f7ef] px-3 py-6 text-stone-950 sm:px-4 sm:py-10">
+      <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <section className="min-w-0 rounded-md border border-[#dcebc8] bg-white p-4 shadow-sm sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <Link href="/" className="text-sm font-medium text-[#587b4b]">
@@ -107,32 +107,32 @@ export default async function BookPage({ searchParams }: BookPageProps) {
           {params?.error && <FlashModal type="error" message={params.error} />}
           {params?.success && <FlashModal type="success" message={params.success} />}
 
-          <form action={createCustomerBooking} className="mt-6 grid gap-4 sm:grid-cols-2">
+          <form action={createCustomerBooking} className="mt-6 grid min-w-0 gap-4 sm:grid-cols-2">
             <input type="hidden" name="redirectTo" value="/book" />
-            <label className="flex flex-col gap-2 text-sm font-medium">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-medium">
               Your name
               <input
                 name="customer"
                 required
                 defaultValue={user.name ?? ""}
-                className="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
+                className="w-full min-w-0 rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-medium">
               Phone
               <input
                 value={user.phone}
                 readOnly
-                className="rounded-md border border-stone-300 bg-stone-100 px-3 py-2 font-normal text-stone-600"
+                className="w-full min-w-0 rounded-md border border-stone-300 bg-stone-100 px-3 py-2 font-normal text-stone-600"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-medium">
               Service
               <select
                 name="serviceId"
                 required
                 disabled={services.length === 0}
-                className="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
+                className="w-full min-w-0 truncate rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
               >
                 <option value="">Choose service</option>
                 {services.map((service) => (
@@ -143,13 +143,13 @@ export default async function BookPage({ searchParams }: BookPageProps) {
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-medium">
               Preferred staff
               <select
                 name="staffId"
                 required
                 disabled={staff.length === 0}
-                className="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
+                className="w-full min-w-0 rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
               >
                 <option value="">Choose staff</option>
                 {staff.map((person) => (
@@ -159,7 +159,7 @@ export default async function BookPage({ searchParams }: BookPageProps) {
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-medium">
               Date
               <input
                 name="date"
@@ -167,17 +167,17 @@ export default async function BookPage({ searchParams }: BookPageProps) {
                 min={todayInputValue()}
                 defaultValue={todayInputValue()}
                 required
-                className="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
+                className="w-full min-w-0 rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-medium">
               Start time
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
                 <select
                   name="startHour"
                   required
                   defaultValue="10"
-                  className="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
+                  className="w-full min-w-0 rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
                 >
                   {BOOKING_START_HOURS.map((hour) => (
                     <option key={hour} value={hour}>
@@ -189,7 +189,7 @@ export default async function BookPage({ searchParams }: BookPageProps) {
                   name="startMinute"
                   required
                   defaultValue="00"
-                  className="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
+                  className="w-full min-w-0 rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
                 >
                   {SLOT_MINUTES.map((minute) => (
                     <option key={minute} value={minute}>
@@ -199,32 +199,32 @@ export default async function BookPage({ searchParams }: BookPageProps) {
                 </select>
               </div>
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium sm:col-span-2">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-medium sm:col-span-2">
               Home massage
-              <span className="flex items-center gap-2 rounded-md border border-[#dcebc8] bg-[#f3f7ef] px-3 py-2 font-normal">
+              <span className="flex min-w-0 items-center gap-2 rounded-md border border-[#dcebc8] bg-[#f3f7ef] px-3 py-2 font-normal">
                 <input
                   name="isHomeMassage"
                   type="checkbox"
-                  className="h-4 w-4 rounded border-stone-300"
+                  className="h-4 w-4 shrink-0 rounded border-stone-300"
                 />
-                I would like this as a home massage
+                <span className="min-w-0">I would like this as a home massage</span>
               </span>
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium sm:col-span-2">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-medium sm:col-span-2">
               Home massage location
               <textarea
                 name="location"
                 rows={2}
-                className="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
+                className="w-full min-w-0 rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
                 placeholder="Required if you tick home massage"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium sm:col-span-2">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-medium sm:col-span-2">
               Note
               <textarea
                 name="note"
                 rows={3}
-                className="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
+                className="w-full min-w-0 rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-[#587b4b]"
                 placeholder="Optional"
               />
             </label>
@@ -240,7 +240,7 @@ export default async function BookPage({ searchParams }: BookPageProps) {
           </form>
         </section>
 
-        <aside className="h-fit rounded-md border border-[#dcebc8] bg-white p-5 shadow-sm">
+        <aside className="h-fit min-w-0 rounded-md border border-[#dcebc8] bg-white p-4 shadow-sm sm:p-5">
           <h2 className="text-xl font-semibold">Your recent bookings</h2>
           <div className="mt-4 grid gap-3">
             {bookings.length === 0 ? (

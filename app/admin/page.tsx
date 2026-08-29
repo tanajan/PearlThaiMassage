@@ -11,7 +11,6 @@ import {
   updateBookingStatus,
   updateShopHours,
   updateStaffSchedule,
-  updateUserAccess,
   logout,
 } from "@/app/actions";
 import { connection } from "next/server";
@@ -44,8 +43,8 @@ const sections = [
   { id: "booking", label: "Booking" },
   { id: "staff", label: "Staff" },
   { id: "service", label: "Service" },
-  { id: "shop", label: "Shop" },
-  { id: "access", label: "Access" },
+  { id: "shop", label: "Shop Hour" },
+  { id: "access", label: "Staff Management" },
   { id: "customer", label: "Customer" },
 ] as const;
 
@@ -66,6 +65,22 @@ function todayInputValue() {
 function splitTime(time: string | undefined, fallback: string) {
   const [hour, minute] = (time ?? fallback).split(":");
   return { hour: String(Number(hour)), minute };
+}
+
+function timeToMinutes(time: string) {
+  const [hour, minute] = time.split(":").map(Number);
+  return hour * 60 + minute;
+}
+
+function formatHours(totalMinutes: number) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (minutes === 0) {
+    return `${hours} hr`;
+  }
+
+  return `${hours} hr ${minutes} min`;
 }
 
 function isSection(value: string | undefined): value is (typeof sections)[number]["id"] {
@@ -236,10 +251,6 @@ export default async function Home({ searchParams }: HomeProps) {
       prisma.shopHours.findMany({
         orderBy: { dayOfWeek: "asc" },
       }),
-      prisma.user.findMany({
-        include: { staff: true },
-        orderBy: { createdAt: "desc" },
-      }),
     ]);
   } catch (error) {
     console.error("Could not load dashboard data", error);
@@ -267,7 +278,7 @@ export default async function Home({ searchParams }: HomeProps) {
     );
   }
 
-  const [staff, serviceGroups, bookings, customerBookings, savedShopHours, users] =
+  const [staff, serviceGroups, bookings, customerBookings, savedShopHours] =
     dashboardData;
   const services = serviceGroups.flatMap((group) => group.services);
   const savedShopHoursByDay = new Map(
@@ -288,6 +299,31 @@ export default async function Home({ searchParams }: HomeProps) {
       : fallback;
   });
 
+  const staffManagement = staff.map((person) => {
+    const plannedMinutes = person.workingHours.reduce((total, hours) => {
+      return total + Math.max(0, timeToMinutes(hours.endTime) - timeToMinutes(hours.startTime));
+    }, 0);
+    const staffBookings = customerBookings.filter((booking) => booking.staffId === person.id);
+    const completedBookings = staffBookings.filter(
+      (booking) => booking.status === "completed",
+    );
+    const completedMinutes = completedBookings.reduce((total, booking) => {
+      return total + Math.max(0, booking.endTime.getTime() - booking.startTime.getTime()) / 60000;
+    }, 0);
+    const completedValue = completedBookings.reduce(
+      (total, booking) => total + booking.service.price,
+      0,
+    );
+
+    return {
+      ...person,
+      plannedMinutes,
+      recentBookings: staffBookings.length,
+      completedMinutes,
+      completedValue,
+    };
+  });
+
   const customers = Array.from(
     customerBookings
       .reduce((map, booking) => {
@@ -298,21 +334,36 @@ export default async function Home({ searchParams }: HomeProps) {
           map.set(key, {
             customer: booking.customer,
             phone: booking.phone,
-            bookings: 1,
-            lastBooking: booking.startTime,
+            bookings: [booking],
           });
           return map;
         }
 
-        current.bookings += 1;
-        if (booking.startTime > current.lastBooking) {
-          current.lastBooking = booking.startTime;
-        }
+        current.bookings.push(booking);
 
         return map;
-      }, new Map<string, { customer: string; phone: string | null; bookings: number; lastBooking: Date }>())
+      }, new Map<string, { customer: string; phone: string | null; bookings: typeof customerBookings }>())
       .values(),
-  );
+  ).map((customer) => {
+    const sortedBookings = [...customer.bookings].sort(
+      (first, second) => second.startTime.getTime() - first.startTime.getTime(),
+    );
+    const completed = sortedBookings.filter((booking) => booking.status === "completed");
+    const cancelled = sortedBookings.filter((booking) => booking.status === "cancelled");
+    const totalValue = sortedBookings.reduce(
+      (total, booking) => total + booking.service.price,
+      0,
+    );
+
+    return {
+      ...customer,
+      bookings: sortedBookings,
+      completedCount: completed.length,
+      cancelledCount: cancelled.length,
+      lastBooking: sortedBookings[0]?.startTime,
+      totalValue,
+    };
+  });
 
   return (
     <main className="min-h-screen bg-stone-50 text-stone-950">
@@ -1289,85 +1340,89 @@ export default async function Home({ searchParams }: HomeProps) {
 
             {activeSection === "access" && (
               <section className="rounded-md border border-stone-200 bg-white p-5 shadow-sm">
-                <h2 className="text-xl font-semibold">User access levels</h2>
+                <h2 className="text-xl font-semibold">Staff management</h2>
                 <p className="mt-1 text-sm text-stone-600">
-                  Only owners can change access levels. Staff accounts should be
-                  linked to the matching staff profile so they only see their own
-                  calendar.
+                  A staff-focused overview for working hours, service preferences,
+                  recent booking activity, and future payroll checks.
                 </p>
 
-                <div className="mt-5 overflow-x-auto">
-                  <table className="w-full min-w-[780px] text-left text-sm">
-                    <thead className="border-b border-stone-200 bg-stone-100 text-xs uppercase tracking-[0.12em] text-stone-500">
-                      <tr>
-                        <th className="px-3 py-3">Phone</th>
-                        <th className="px-3 py-3">Current level</th>
-                        <th className="px-3 py-3">Staff profile</th>
-                        <th className="px-3 py-3">Change access</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.length === 0 ? (
-                        <tr>
-                          <td className="px-3 py-4 text-stone-500" colSpan={4}>
-                            No users have logged in yet.
-                          </td>
-                        </tr>
-                      ) : (
-                        users.map((user) => (
-                          <tr key={user.id} className="border-b border-stone-100">
-                            <td className="px-3 py-3 font-medium">{user.phone}</td>
-                            <td className="px-3 py-3 capitalize text-stone-600">
-                              {user.role}
-                            </td>
-                            <td className="px-3 py-3 text-stone-600">
-                              {user.staff?.name ?? "-"}
-                            </td>
-                            <td className="px-3 py-3">
-                              <form
-                                action={updateUserAccess}
-                                className="flex flex-wrap gap-2"
-                              >
-                                <input type="hidden" name="userId" value={user.id} />
-                                <input
-                                  type="hidden"
-                                  name="redirectTo"
-                                  value="/admin?section=access"
-                                />
-                                <select
-                                  name="role"
-                                  defaultValue={user.role}
-                                  className="rounded-md border border-stone-300 px-2 py-1.5 outline-none focus:border-amber-700"
-                                >
-                                  <option value="owner">Owner</option>
-                                  <option value="staff">Staff</option>
-                                  <option value="customer">Customer</option>
-                                </select>
-                                <select
-                                  name="staffId"
-                                  defaultValue={user.staffId ?? ""}
-                                  className="rounded-md border border-stone-300 px-2 py-1.5 outline-none focus:border-amber-700"
-                                >
-                                  <option value="">No staff profile</option>
-                                  {staff.map((person) => (
-                                    <option key={person.id} value={person.id}>
-                                      {person.name}
-                                    </option>
-                                  ))}
-                                </select>
-                                <button
-                                  type="submit"
-                                  className="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-semibold hover:bg-stone-100"
-                                >
-                                  Save
-                                </button>
-                              </form>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                <div className="mt-5 grid gap-4">
+                  {staffManagement.length === 0 ? (
+                    <p className="rounded-md bg-stone-100 p-4 text-sm text-stone-600">
+                      Add staff first, then this page will show their hours and
+                      booking activity.
+                    </p>
+                  ) : (
+                    staffManagement.map((person) => (
+                      <article
+                        key={person.id}
+                        className="rounded-md border border-stone-200 bg-stone-50 p-4"
+                      >
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div>
+                            <h3 className="text-lg font-semibold">{person.name}</h3>
+                            <p className="mt-1 text-sm text-stone-600">
+                              {person.phone ?? "No phone number saved"}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <a
+                              href="/admin?section=staff"
+                              className="rounded-md bg-stone-950 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-800"
+                            >
+                              Set preference
+                            </a>
+                            <a
+                              href="/staff-calendar"
+                              className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold hover:bg-white"
+                            >
+                              View calendar
+                            </a>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                          <div className="rounded-md bg-white p-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
+                              Planned weekly hours
+                            </p>
+                            <p className="mt-2 text-xl font-semibold">
+                              {formatHours(person.plannedMinutes)}
+                            </p>
+                          </div>
+                          <div className="rounded-md bg-white p-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
+                              Completed service hours
+                            </p>
+                            <p className="mt-2 text-xl font-semibold">
+                              {formatHours(person.completedMinutes)}
+                            </p>
+                          </div>
+                          <div className="rounded-md bg-white p-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
+                              Recent bookings
+                            </p>
+                            <p className="mt-2 text-xl font-semibold">
+                              {person.recentBookings}
+                            </p>
+                          </div>
+                          <div className="rounded-md bg-white p-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
+                              Completed value
+                            </p>
+                            <p className="mt-2 text-xl font-semibold">
+                              GBP {person.completedValue.toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 rounded-md border border-dashed border-stone-300 bg-white p-3 text-sm text-stone-600">
+                          Payroll rate, commission, preferred days, and staff notes can
+                          be added here when we add those database fields.
+                        </div>
+                      </article>
+                    ))
+                  )}
                 </div>
               </section>
             )}
@@ -1376,46 +1431,145 @@ export default async function Home({ searchParams }: HomeProps) {
               <section className="rounded-md border border-stone-200 bg-white p-5 shadow-sm">
                 <h2 className="text-xl font-semibold">Customers</h2>
                 <p className="mt-1 text-sm text-stone-600">
-                  Customer records are currently built from booking history.
+                  Customer records are currently built from booking history. Payment,
+                  private notes, complaints, and blacklist status are shown as
+                  placeholders until we add dedicated customer fields.
                 </p>
-                <div className="mt-5 overflow-x-auto">
-                  <table className="w-full min-w-[640px] text-left text-sm">
-                    <thead className="border-b border-stone-200 bg-stone-100 text-xs uppercase tracking-[0.12em] text-stone-500">
-                      <tr>
-                        <th className="px-3 py-3">Name</th>
-                        <th className="px-3 py-3">Phone</th>
-                        <th className="px-3 py-3">Bookings</th>
-                        <th className="px-3 py-3">Last booking</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {customers.length === 0 ? (
-                        <tr>
-                          <td className="px-3 py-4 text-stone-500" colSpan={4}>
-                            No customers yet.
-                          </td>
-                        </tr>
-                      ) : (
-                        customers.map((customer) => (
-                          <tr
-                            key={`${customer.customer}-${customer.phone ?? "none"}`}
-                            className="border-b border-stone-100"
-                          >
-                            <td className="px-3 py-3 font-medium">{customer.customer}</td>
-                            <td className="px-3 py-3 text-stone-600">
-                              {customer.phone ?? "Not provided"}
-                            </td>
-                            <td className="px-3 py-3 text-stone-600">
-                              {customer.bookings}
-                            </td>
-                            <td className="px-3 py-3 text-stone-600">
-                              {formatDateTime(customer.lastBooking)}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+
+                <div className="mt-5 grid gap-4">
+                  {customers.length === 0 ? (
+                    <p className="rounded-md bg-stone-100 p-4 text-sm text-stone-600">
+                      No customers yet.
+                    </p>
+                  ) : (
+                    customers.map((customer) => (
+                      <details
+                        key={`${customer.customer}-${customer.phone ?? "none"}`}
+                        className="rounded-md border border-stone-200 bg-stone-50 p-4"
+                      >
+                        <summary className="cursor-pointer list-none">
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                            <div>
+                              <h3 className="text-lg font-semibold">
+                                {customer.customer}
+                              </h3>
+                              <p className="mt-1 text-sm text-stone-600">
+                                {customer.phone ?? "No phone number saved"}
+                              </p>
+                            </div>
+                            <div className="grid gap-2 text-sm sm:grid-cols-4 lg:min-w-[560px]">
+                              <span className="rounded-md bg-white px-3 py-2">
+                                {customer.bookings.length} bookings
+                              </span>
+                              <span className="rounded-md bg-white px-3 py-2">
+                                {customer.completedCount} completed
+                              </span>
+                              <span className="rounded-md bg-white px-3 py-2">
+                                {customer.cancelledCount} cancelled
+                              </span>
+                              <span className="rounded-md bg-white px-3 py-2">
+                                GBP {customer.totalValue.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        </summary>
+
+                        <div className="mt-4 grid gap-4 border-t border-stone-200 pt-4">
+                          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                            <div className="rounded-md bg-white p-3 text-sm">
+                              <p className="font-semibold">Last booking</p>
+                              <p className="mt-1 text-stone-600">
+                                {customer.lastBooking
+                                  ? formatDateTime(customer.lastBooking)
+                                  : "No booking yet"}
+                              </p>
+                            </div>
+                            <div className="rounded-md bg-white p-3 text-sm">
+                              <p className="font-semibold">Payment</p>
+                              <p className="mt-1 text-stone-600">
+                                Pay in person / not tracked yet
+                              </p>
+                            </div>
+                            <div className="rounded-md bg-white p-3 text-sm">
+                              <p className="font-semibold">Complaints</p>
+                              <p className="mt-1 text-stone-600">None recorded</p>
+                            </div>
+                            <div className="rounded-md bg-white p-3 text-sm">
+                              <p className="font-semibold">Blacklist</p>
+                              <p className="mt-1 text-stone-600">No</p>
+                            </div>
+                          </div>
+
+                          <div className="rounded-md bg-white p-3 text-sm">
+                            <p className="font-semibold">Notes</p>
+                            <p className="mt-1 text-stone-600">
+                              Customer notes are not saved yet. Booking notes are
+                              listed below.
+                            </p>
+                          </div>
+
+                          <div className="overflow-x-auto">
+                            <table className="w-full min-w-[820px] text-left text-sm">
+                              <thead className="border-b border-stone-200 bg-white text-xs uppercase tracking-[0.12em] text-stone-500">
+                                <tr>
+                                  <th className="px-3 py-3">Booking</th>
+                                  <th className="px-3 py-3">Service</th>
+                                  <th className="px-3 py-3">Staff</th>
+                                  <th className="px-3 py-3">Status</th>
+                                  <th className="px-3 py-3">Payment</th>
+                                  <th className="px-3 py-3">Notes</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {customer.bookings.map((booking) => (
+                                  <tr
+                                    key={booking.id}
+                                    className="border-b border-stone-100 bg-white"
+                                  >
+                                    <td className="px-3 py-3">
+                                      #{booking.id}
+                                      <div className="text-xs text-stone-500">
+                                        {formatDateTime(booking.startTime)}
+                                      </div>
+                                    </td>
+                                    <td className="px-3 py-3 text-stone-600">
+                                      {booking.service.name}
+                                      <div className="text-xs text-stone-500">
+                                        GBP {booking.service.price.toFixed(2)}
+                                      </div>
+                                    </td>
+                                    <td className="px-3 py-3 text-stone-600">
+                                      {booking.staff.name}
+                                    </td>
+                                    <td className="px-3 py-3">
+                                      <span
+                                        className={`rounded-full px-3 py-1 text-xs font-medium ${bookingStatusClass(
+                                          booking.status,
+                                        )}`}
+                                      >
+                                        {bookingStatusLabel(booking.status)}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-3 text-stone-600">
+                                      Not tracked
+                                    </td>
+                                    <td className="px-3 py-3 text-stone-600">
+                                      {booking.note ?? "-"}
+                                      {booking.isHomeMassage && (
+                                        <div className="text-xs text-stone-500">
+                                          Home: {booking.location ?? "Location missing"}
+                                        </div>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </details>
+                    ))
+                  )}
                 </div>
               </section>
             )}

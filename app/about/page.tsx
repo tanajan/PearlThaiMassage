@@ -15,7 +15,7 @@ export default function AboutPage() {
           <h1 className="text-2xl font-semibold text-[#587b4b] sm:text-3xl">About Us</h1>
           <p className="mt-5 leading-8 text-stone-700">
             Pearl Thai Massage is dedicated to bringing the authentic experience of
-            traditional Thai massage to Birmingham. Our therapists combine
+            traditional Thai massage to every customer. Our therapists combine
             acupressure, stretching, and deep tissue massage to help relieve
             tension, improve flexibility, and support your overall wellbeing.
           </p>

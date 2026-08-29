@@ -36,10 +36,22 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                 </Link>
               ))}
               <Link
-                href="/book"
+                href="/login"
                 className="rounded-full bg-[#7fa66a] px-4 py-2 text-white transition hover:bg-[#dcebc8] hover:text-[#263f32]"
               >
                 Book Now
+              </Link>
+              <Link
+                href="/login"
+                className="rounded-full border border-white/40 px-4 py-2 text-white transition hover:bg-white hover:text-[#263f32]"
+              >
+                Login
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-full bg-white px-4 py-2 text-[#263f32] transition hover:bg-[#dcebc8]"
+              >
+                Sign up
               </Link>
             </div>
 
@@ -58,10 +70,19 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                   </Link>
                 ))}
                 <Link
-                  href="/book"
+                  href="/login"
                   className="rounded-md bg-[#7fa66a] px-3 py-2 text-white hover:bg-[#315c46]"
                 >
                   Book Now
+                </Link>
+                <Link href="/login" className="rounded-md px-3 py-2 hover:bg-[#f3f7ef]">
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  className="rounded-md bg-[#dcebc8] px-3 py-2 text-[#263f32] hover:bg-[#c6dfac]"
+                >
+                  Sign up
                 </Link>
               </div>
             </details>
@@ -76,9 +97,9 @@ export function PublicLayout({ children }: { children: ReactNode }) {
           <div>
             <h4 className="font-semibold">Contact</h4>
             <p className="mt-2 text-sm text-stone-200">
-              38A Meriden Street, Birmingham B5 5LS
+              2 Whitehill Road Cambridge CB5 8LT
             </p>
-            <p className="mt-1 text-sm text-stone-200">+44 7596 959873</p>
+            <p className="mt-1 text-sm text-stone-200">+44 7383 859645</p>
           </div>
           <div>
             <h4 className="font-semibold">Quick Links</h4>
